@@ -40,8 +40,13 @@ import contracts  # noqa: E402
 
 
 # ── point merging (union-find over near-coincident points) ──────────────────────────────────
-def merge_points(pts: np.ndarray, radius: np.ndarray | None, tol: float = 0.2):
-    """Collapse points within `tol` mm into shared nodes. Returns (pos Mx3, radius M, orig->merged)."""
+def merge_points(pts: np.ndarray, radius: np.ndarray | None, tol: float = 0.01):
+    """Weld points within `tol` mm into shared nodes. Returns (pos Mx3, radius M, orig->merged).
+
+    `tol` MUST stay below the centerline's point spacing, or union-find chains consecutive points
+    along one line into a blob and the graph collapses. It exists only to fuse the duplicate
+    trunk points that overlapping vmtk centerlines share. build_graph_json sets it adaptively.
+    """
     from scipy.spatial import cKDTree
 
     n = len(pts)
@@ -192,11 +197,19 @@ def to_contract(case_id: str, gr: nx.Graph, aneurysm_node, entry_nodes) -> dict:
 
 
 def build_graph_json(case_id, pts, radius, polylines, aneurysm_pos=None,
-                     n_entries=1, merge_tol=0.2) -> dict:
-    """End-to-end: raw centerline arrays -> contract-shaped graph dict."""
-    pos, rad, o2m = merge_points(np.asarray(pts, dtype=float),
+                     n_entries=1, merge_tol=0.01) -> dict:
+    """End-to-end: raw centerline arrays -> contract-shaped graph dict.
+
+    merge_tol is treated as a CAP: the effective weld tolerance is clamped to 30% of the finest
+    intra-line point spacing, so densely-sampled centerlines never self-collapse.
+    """
+    pts = np.asarray(pts, dtype=float)
+    seg = [np.linalg.norm(np.diff(pts[pl], axis=0), axis=1) for pl in polylines if len(pl) > 1]
+    min_spacing = float(np.concatenate(seg).min()) if seg else merge_tol
+    weld = min(merge_tol, 0.3 * min_spacing)
+    pos, rad, o2m = merge_points(pts,
                                  None if radius is None else np.asarray(radius, dtype=float),
-                                 tol=merge_tol)
+                                 tol=weld)
     gf = build_fine_graph(polylines, o2m)
     gr = reduce_graph(gf, pos, rad)
     if gr.number_of_nodes() == 0:
@@ -212,7 +225,8 @@ def main() -> None:
     ap.add_argument("--case-dir", help="folder to auto-discover the centerline in")
     ap.add_argument("--aneurysm-pos", type=float, nargs=3, help="x y z of aneurysm centroid (mm)")
     ap.add_argument("--entries", type=int, default=1, help="how many inlet endpoints to tag as entry")
-    ap.add_argument("--merge-tol", type=float, default=0.2)
+    ap.add_argument("--merge-tol", type=float, default=0.01,
+                    help="cap on the point-weld tolerance in mm (auto-clamped below the sampling)")
     ap.add_argument("--out", default="artifacts")
     args = ap.parse_args()
 

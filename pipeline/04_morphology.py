@@ -99,6 +99,21 @@ def _max_pairwise(points: np.ndarray) -> float:
     return float(d.max())
 
 
+def load_clinical_aneurisk(manifest_path: str) -> dict:
+    """Pull the clinical block from an Aneurisk case manifest.csv (its own schema:
+    id,institution,modality,age,sex,aneurysmType,aneurysmLocation,ruptureStatus,...)."""
+    import pandas as pd
+
+    r = pd.read_csv(manifest_path).iloc[0]
+    status = str(r["ruptureStatus"]).strip().upper()
+    return {
+        "rupture_status": "ruptured" if status.startswith("R") else "unruptured",
+        "patient_age": round(float(r["age"]), 1),
+        "patient_sex": normalize_sex(str(r["sex"])),
+        "_location": normalize_location(str(r["aneurysmLocation"])),
+    }
+
+
 def compute_geometry_from_mesh(mesh, parent_radius_mm: float, location: str) -> dict:
     """Compute the geometry block from an aneurysm sac mesh (trimesh.Trimesh)."""
     verts = np.asarray(mesh.vertices, dtype=float)
@@ -162,7 +177,8 @@ def _load_aneurysm_mesh(glb_path: str):
 def main() -> None:
     ap = argparse.ArgumentParser(description="Phase 4: -> morphology.json")
     ap.add_argument("--case", required=True)
-    ap.add_argument("--vessel-file-id", required=True, help="AneuX vesselFileID for clinical.csv")
+    ap.add_argument("--vessel-file-id", help="AneuX vesselFileID for AneuX clinical.csv")
+    ap.add_argument("--manifest", help="Aneurisk case manifest.csv (alternative clinical source)")
     ap.add_argument("--aneux-dir", default=DEFAULT_ANEUX)
     ap.add_argument("--artifacts", default="artifacts")
     ap.add_argument("--hemo-json", help="Phase-3 WSS summary sidecar (optional)")
@@ -172,7 +188,12 @@ def main() -> None:
     graph = json.load(open(os.path.join(case_dir, "graph.json")))
     parent_radius = next(n["radius"] for n in graph["nodes"] if n["id"] == graph["aneurysm_node"])
 
-    clinical = load_clinical(args.aneux_dir, args.vessel_file_id)
+    if args.manifest:
+        clinical = load_clinical_aneurisk(args.manifest)
+    elif args.vessel_file_id:
+        clinical = load_clinical(args.aneux_dir, args.vessel_file_id)
+    else:
+        raise SystemExit("provide --manifest (Aneurisk) or --vessel-file-id (AneuX) for clinical data")
     mesh = _load_aneurysm_mesh(os.path.join(case_dir, "aneurysm.glb"))
     geometry = compute_geometry_from_mesh(mesh, parent_radius, clinical["_location"])
     hemodynamics, is_real = load_hemodynamics(args.hemo_json)
