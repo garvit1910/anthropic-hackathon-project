@@ -155,6 +155,35 @@ pip: pygltflib.
 **Frontend (Node, Garvit):** `npm create vite@latest web -- --template react` then
 `cd web && npm install three @react-three/fiber @react-three/drei`
 
+## Running the pipeline (verified on real Aneurisk C0001)
+
+The hero dataset (Aneurisk) is mirrored on GitHub — pull one case's files directly (no multi-GB
+zip): `github.com/hkjeldsberg/AneuriskDatabase/models/C0001/` has `surface/model.vtp`,
+`morphology/centerlines.vtp`, and `manifest.csv`. Save under `aneurisk/C0001/` (git-ignored).
+
+A lean env (numpy, scipy, networkx, pandas, trimesh, pyvista) is enough for the Aneurisk path —
+Aneurisk ships centerlines, so no VMTK needed. pyvista+vtk install fine on Python 3.14.
+
+```bash
+# Phase 2 — centerline -> graph.json  (adaptive weld tol; ~0.1mm sampling)
+python pipeline/02_graph.py --case C0001 --centerline aneurisk/C0001/morphology/centerlines.vtp --entries 2
+# Phase 1 — surface -> vessel_tree.glb + aneurysm.glb  (aneurysm-center from the graph's aneurysm_node pos)
+python pipeline/01_geometry.py --case C0001 --vessel-mesh aneurisk/C0001/surface/model.vtp --aneurysm-center X Y Z
+# Phase 3 — graph -> streamlines.json (Tier-3 proxy)
+python pipeline/03_cfd.py --case C0001
+# Phase 4 — manifest + aneurysm.glb -> morphology.json
+python pipeline/04_morphology.py --case C0001 --manifest aneurisk/C0001/manifest.csv
+# Verify the whole case against the contract
+python validate_artifacts.py artifacts/case_C0001
+```
+
+`pipeline_selftest.py` exercises all four phases on synthetic geometry + the real AneuX CSV.
+
+Known gaps to tighten for the demo: aneurysm isolation is a sphere-clip around the max-radius
+centerline node (a placeholder — the detected "neck" is the clip boundary, so real neck/diameter
+numbers are rough); Tier-1/2 CFD and the TOF-MRA reconstruction path are written but not yet run,
+so hemodynamics is a flagged placeholder.
+
 ## Git
 
 Default branch `main`. Ronuk works on branch `ronuk`. Remote:
