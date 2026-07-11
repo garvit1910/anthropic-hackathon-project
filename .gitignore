@@ -14,6 +14,17 @@ build/
 .next/
 .vercel/
 
+# Raw datasets (downloaded inputs, not source)
+zenodo_aneux/
+aneurisk/
+*.nii
+*.nii.gz
+
+# Real pipeline outputs (large binaries) — keep the folder, ignore its contents.
+# The mock handoff (artifacts_mock/) IS committed; it's the contract spec.
+/artifacts/case_*/
+!/artifacts/.gitkeep
+
 # OS / editor
 .DS_Store
 .claude/settings.local.json
