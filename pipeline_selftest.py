@@ -5,7 +5,7 @@ pipeline_selftest.py — verify the Phase 1-4 logic end-to-end without heavy mes
 Covers the algorithmic core that doesn't need vtk/pyvista:
   * Phase 2 graph build  — on a synthetic Y-shaped centerline with an aneurysm sac branch.
   * Phase 3 CFD proxy    — analytic streamlines over that graph.
-  * Phase 4 morphology   — sac geometry from a synthetic trimesh dome + REAL AneuX clinical.csv.
+  * Phase 4 morphology   — sac geometry from a synthetic trimesh dome + a tracked clinical fixture.
   * Phase 1 GLB export   — trimesh export + reload round-trip.
 
 Every produced artifact is checked against contracts.py. The one path this does NOT exercise is
@@ -110,11 +110,10 @@ def main() -> int:
     ok &= check("streamlines.json matches contract", contracts.validate_streamlines(streams))
     print(f"        {len(streams['streamlines'])} streamlines")
 
-    print("Phase 4 — morphology (synthetic sac + REAL AneuX clinical.csv)")
+    print("Phase 4 — morphology (synthetic sac + tracked clinical fixture)")
     sac = synthetic_sac_mesh()
     parent_radius = next(n["radius"] for n in graph["nodes"] if n["id"] == graph["aneurysm_node"])
-    clinical = morph_mod.load_clinical(os.path.join(ROOT, "zenodo_aneux", "data"),
-                                       "p043_HAARCREcDAAQDQcbHgANDRQM")
+    clinical = morph_mod.load_clinical_aneurisk(os.path.join(ROOT, "testdata", "manifest.csv"))
     geometry = morph_mod.compute_geometry_from_mesh(sac, parent_radius, clinical["_location"])
     hemo, _ = morph_mod.load_hemodynamics(None)
     morph = morph_mod.assemble("C_TEST", geometry, hemo, clinical)
