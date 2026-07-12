@@ -42,22 +42,32 @@ def load_and_clean_mesh(path: str):
 
 
 # ── reconstruction path: TOF-MRA .nii → surface ─────────────────────────────────────────────
-def reconstruct_from_tof_mra(nii_path: str, percentile: float = 99.0):
-    """.nii volume → vessel surface (vertices, faces) in mm world coords.
+def reconstruct_from_tof_mra(nii_path: str, percentile: float = 99.5, sigmas=(1, 2, 3, 4)):
+    """.nii TOF-MRA volume → vessel surface (vertices, faces) in mm world coords.
 
-    TOF-MRA makes flowing blood bright by design → vessels are segmentable without contrast.
+    TOF-MRA makes flowing blood BRIGHT by design → vessels are bright tubular structures, so
+    Frangi runs with black_ridges=False. We normalize first (stable vesselness), threshold at a
+    high percentile (vessels are a sparse fraction of the brain), keep the single largest
+    connected structure (drops speckle), then marching-cubes to a surface.
     Fallback for noisy volumes: a pretrained nnU-Net (download weights; no training)."""
     import nibabel as nib
+    from scipy import ndimage
     from skimage.filters import frangi
     from skimage.measure import marching_cubes
 
     img = nib.load(nii_path)
-    volume = img.get_fdata()
-    vesselness = frangi(volume)
+    volume = img.get_fdata().astype(np.float32)
+    volume = (volume - volume.min()) / (np.ptp(volume) + 1e-9)
+    vesselness = frangi(volume, sigmas=sigmas, black_ridges=False)
     mask = vesselness > np.percentile(vesselness, percentile)
+
+    labels, n = ndimage.label(mask)                       # keep the largest connected vessel tree
+    if n > 1:
+        sizes = ndimage.sum(mask, labels, range(1, n + 1))
+        mask = labels == (int(np.argmax(sizes)) + 1)
+
     verts, faces, _n, _v = marching_cubes(mask.astype(np.float32), level=0.5)
-    # voxel → mm world coordinates via the NIfTI affine
-    verts = nib.affines.apply_affine(img.affine, verts)
+    verts = nib.affines.apply_affine(img.affine, verts)   # voxel → mm world coordinates
     return verts, faces
 
 

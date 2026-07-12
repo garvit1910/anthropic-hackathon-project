@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NeuroVas Copilot — 3D Artifact Viewer</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden;
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #0a0d12; color: #e8edf2; }
+  #app { position: fixed; inset: 0; }
+  #panel { position: fixed; top: 14px; left: 14px; width: 288px; max-height: calc(100% - 28px);
+    overflow:auto; background: rgba(16,20,27,.86); backdrop-filter: blur(8px);
+    border: 1px solid #222b36; border-radius: 12px; padding: 14px 15px; z-index: 10; }
+  #panel h1 { font-size: 14px; margin: 0 0 2px; letter-spacing:.2px; }
+  #panel .sub { font-size: 11px; color: #8794a3; margin-bottom: 12px; }
+  select { width: 100%; background:#0d1117; color:#e8edf2; border:1px solid #2a333f;
+    border-radius:8px; padding:7px 9px; font-size:13px; margin-bottom:12px; }
+  .row { display:flex; align-items:center; gap:8px; padding:5px 2px; font-size:13px; }
+  .row input { accent-color:#4aa3ff; width:15px; height:15px; }
+  .row .sw { width:11px; height:11px; border-radius:3px; flex:0 0 auto; }
+  .sec { font-size:10px; text-transform:uppercase; letter-spacing:.9px; color:#67727f;
+    margin:12px 0 3px; }
+  #morph { font-size:12px; line-height:1.55; }
+  #morph b { color:#fff; } #morph .k { color:#8794a3; }
+  .flag { color:#ffb454; font-size:11px; margin-top:6px; }
+  #hint { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; color:#67727f; z-index:10; }
+  #status { position: fixed; top: 14px; right: 14px; font-size:11px; color:#8794a3;
+    background: rgba(16,20,27,.86); border:1px solid #222b36; border-radius:8px; padding:6px 10px; z-index:10; }
+  button.mini { background:#182029; color:#cdd6e0; border:1px solid #2a333f; border-radius:7px;
+    padding:6px 9px; font-size:12px; cursor:pointer; width:100%; margin-top:6px; }
+  button.mini:hover { background:#212c38; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="status">loading…</div>
+<div id="panel">
+  <h1>NeuroVas Copilot</h1>
+  <div class="sub">3D artifact viewer · mm world frame</div>
+  <select id="caseSel"></select>
+
+  <div class="sec">Layers</div>
+  <label class="row"><input type="checkbox" id="t-vessel" checked><span class="sw" style="background:#d23b2e"></span>Vessel tree</label>
+  <label class="row"><input type="checkbox" id="t-aneurysm" checked><span class="sw" style="background:#f28c26"></span>Aneurysm sac</label>
+  <label class="row"><input type="checkbox" id="t-graph" checked><span class="sw" style="background:#4aa3ff"></span>Centerline graph</label>
+  <label class="row"><input type="checkbox" id="t-stream"><span class="sw" style="background:#43d1ff"></span>Streamlines</label>
+  <label class="row"><input type="checkbox" id="t-cath" checked><span class="sw" style="background:#ffe34a"></span>Catheter route</label>
+
+  <div class="sec">Node types</div>
+  <div class="row"><span class="sw" style="background:#38d96b"></span>entry &nbsp;<span class="sw" style="background:#ff3b3b"></span>aneurysm &nbsp;<span class="sw" style="background:#4aa3ff"></span>bifurcation &nbsp;<span class="sw" style="background:#8b97a3"></span>endpoint</div>
+
+  <div class="sec">Morphology</div>
+  <div id="morph">—</div>
+
+  <button class="mini" id="resetBtn">Reset view</button>
+  <button class="mini" id="spinBtn">Toggle auto-rotate</button>
+</div>
+<div id="hint">drag to orbit · scroll to zoom · right-drag to pan</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const CASES = ['C0001', 'LAUSANNE_sub000', 'CMHA_AHMU1218001'];
+const statusEl = document.getElementById('status');
+const setStatus = (t) => statusEl.textContent = t;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0d12);
+scene.fog = new THREE.Fog(0x0a0d12, 220, 620);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 5000);
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.getElementById('app').appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xbcd4ff, 0x0a0d12, 1.05));
+const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(1,1,1); scene.add(key);
+const fill = new THREE.DirectionalLight(0x88aaff, .6); fill.position.set(-1,-.4,-1); scene.add(fill);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = .08;
+
+const gltf = new GLTFLoader();
+const groups = {};                 // layer name -> THREE.Group
+for (const n of ['vessel','aneurysm','graph','stream','cath']) {
+  groups[n] = new THREE.Group(); scene.add(groups[n]);
+}
+const clear = (g) => { while (g.children.length) { const c = g.children.pop();
+  c.geometry?.dispose?.(); c.material?.dispose?.(); } };
+
+async function fetchJSON(u){ const r = await fetch(u); if(!r.ok) throw new Error(u); return r.json(); }
+function loadGLB(u){ return new Promise((res,rej)=> gltf.load(u, g=>res(g), undefined, rej)); }
+
+const TYPE_COLOR = { entry:0x38d96b, aneurysm:0xff3b3b, bifurcation:0x4aa3ff, endpoint:0x8b97a3 };
+
+function frame(box){
+  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+  const r = Math.max(s.x,s.y,s.z);
+  controls.target.copy(c);
+  camera.position.copy(c).add(new THREE.Vector3(r*.6, r*.35, r*1.7));
+  camera.near = r/100; camera.far = r*30; camera.updateProjectionMatrix();
+  scene.fog.near = r*1.4; scene.fog.far = r*4.2;
+}
+
+async function loadCase(name){
+  Object.values(groups).forEach(clear);
+  document.getElementById('morph').innerHTML = '—';
+  setStatus('loading ' + name + '…');
+  const base = `artifacts/case_${name}/`;
+  let box = new THREE.Box3(), gotGeom = false;
+
+  // vessel mesh (translucent so interior structures show)
+  try {
+    const g = await loadGLB(base + 'vessel_tree.glb');
+    g.scene.traverse(o => { if (o.isMesh) {
+      o.geometry.computeVertexNormals();          // trimesh GLB has no normals -> lighting=black
+      o.material = new THREE.MeshStandardMaterial({ color:0xe0483a, emissive:0x2a0a06,
+        transparent:true, opacity:.34, roughness:.45, metalness:.0, side:THREE.DoubleSide });
+      groups.vessel.add(o.clone());
+    }});
+    box.expandByObject(groups.vessel); gotGeom = true;
+  } catch(e){ /* some cases have no geometry */ }
+
+  // aneurysm sac (highlighted)
+  try {
+    const g = await loadGLB(base + 'aneurysm.glb');
+    g.scene.traverse(o => { if (o.isMesh) {
+      o.geometry.computeVertexNormals();
+      o.material = new THREE.MeshStandardMaterial({ color:0xff9a3c, emissive:0xf28c26,
+        emissiveIntensity:.35, roughness:.3, metalness:.05, side:THREE.DoubleSide });
+      groups.aneurysm.add(o.clone());
+    }});
+    box.expandByObject(groups.aneurysm); gotGeom = true;
+  } catch(e){}
+
+  // centerline graph: node spheres + edge polylines
+  let graph = null;
+  try {
+    graph = await fetchJSON(base + 'graph.json');
+    const edgeMat = new THREE.LineBasicMaterial({ color:0x5b6a7d, transparent:true, opacity:.8 });
+    for (const e of graph.edges) {
+      const pts = e.polyline.map(p => new THREE.Vector3(p[0],p[1],p[2]));
+      groups.graph.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), edgeMat));
+    }
+    const sph = new THREE.SphereGeometry(1, 16, 16);
+    for (const n of graph.nodes) {
+      const isKey = n.type==='aneurysm' || n.type==='entry';
+      const m = new THREE.Mesh(sph, new THREE.MeshStandardMaterial({
+        color: TYPE_COLOR[n.type] ?? 0xffffff, emissive: isKey ? (TYPE_COLOR[n.type]) : 0x000000,
+        emissiveIntensity: isKey ? .5 : 0 }));
+      m.position.set(n.pos[0], n.pos[1], n.pos[2]);
+      const s = n.type==='aneurysm' ? 2.4 : n.type==='entry' ? 1.7 : 1.05;
+      m.scale.setScalar(s); groups.graph.add(m);
+    }
+    if (!gotGeom) { box.expandByObject(groups.graph); gotGeom = true; }
+  } catch(e){}
+
+  // streamlines colored by speed
+  try {
+    const s = await fetchJSON(base + 'streamlines.json');
+    let vmax = 1e-6; s.streamlines.forEach(l => (l.speed||[]).forEach(v => vmax = Math.max(vmax,v)));
+    const pos = [], col = [], c = new THREE.Color();
+    for (const l of s.streamlines) {
+      for (let i=0;i<l.points.length-1;i++){
+        const a=l.points[i], b=l.points[i+1];
+        pos.push(a[0],a[1],a[2], b[0],b[1],b[2]);
+        const t=(l.speed?.[i]??0)/vmax; c.setHSL((1-t)*0.62, .9, .55);
+        col.push(c.r,c.g,c.b, c.r,c.g,c.b);
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col,3));
+    groups.stream.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, opacity:.85 })));
+  } catch(e){}
+
+  // catheter route(s): bright tube, shortest brightest
+  try {
+    const c = await fetchJSON(base + 'catheter_paths.json');
+    c.routes.sort((a,b)=>a.length_mm-b.length_mm);
+    c.routes.forEach((r, i) => {
+      const pts = r.route_points.map(p => new THREE.Vector3(p[0],p[1],p[2]));
+      if (pts.length < 2) return;
+      const curve = new THREE.CatmullRomCurve3(pts);
+      const tube = new THREE.TubeGeometry(curve, Math.min(600, pts.length*2), i===0?0.55:0.38, 10, false);
+      groups.cath.add(new THREE.Mesh(tube, new THREE.MeshStandardMaterial({
+        color: i===0?0xffe34a:0x9aa0ff, emissive: i===0?0x4a4200:0x1a1c40, roughness:.3 })));
+    });
+  } catch(e){}
+
+  // morphology readout
+  try {
+    const m = await fetchJSON(base + 'morphology.json');
+    const g = m.geometry, h = m.hemodynamics, cl = m.clinical;
+    const flag = h._note ? `<div class="flag">⚠ ${h._note}</div>` : '';
+    document.getElementById('morph').innerHTML = `
+      <span class="k">location</span> <b>${g.location}</b> · <span class="k">rupture</span> <b>${cl.rupture_status}</b><br>
+      <span class="k">max Ø</span> <b>${g.max_diameter_mm}</b> mm · <span class="k">neck</span> <b>${g.neck_width_mm}</b> mm<br>
+      <span class="k">height</span> <b>${g.height_mm}</b> mm · <span class="k">AR</span> <b>${g.aspect_ratio}</b> · <span class="k">SR</span> <b>${g.size_ratio}</b><br>
+      <span class="k">peak WSS</span> <b>${h.peak_wss_pa}</b> Pa · <span class="k">OSI</span> <b>${h.osi_max}</b><br>
+      <span class="k">age/sex</span> <b>${cl.patient_age}/${cl.patient_sex}</b>${cl.phase_score!=null?` · <span class="k">PHASE</span> <b>${cl.phase_score}</b>`:''}
+      ${flag}`;
+  } catch(e){ document.getElementById('morph').innerHTML = '<span class="k">no morphology.json for this case</span>'; }
+
+  if (gotGeom && !box.isEmpty()) frame(box);
+  applyToggles();
+  const counts = [];
+  if (groups.vessel.children.length) counts.push('vessel');
+  if (groups.aneurysm.children.length) counts.push('aneurysm');
+  if (graph) counts.push(`${graph.nodes.length}-node graph`);
+  if (groups.cath.children.length) counts.push(`${groups.cath.children.length} route(s)`);
+  setStatus(name + ' · ' + (counts.join(' · ') || 'morphology only'));
+}
+
+function applyToggles(){
+  groups.vessel.visible   = document.getElementById('t-vessel').checked;
+  groups.aneurysm.visible = document.getElementById('t-aneurysm').checked;
+  groups.graph.visible    = document.getElementById('t-graph').checked;
+  groups.stream.visible   = document.getElementById('t-stream').checked;
+  groups.cath.visible     = document.getElementById('t-cath').checked;
+}
+['t-vessel','t-aneurysm','t-graph','t-stream','t-cath'].forEach(id =>
+  document.getElementById(id).addEventListener('change', applyToggles));
+
+const sel = document.getElementById('caseSel');
+CASES.forEach(c => { const o = document.createElement('option'); o.value=o.textContent=c; sel.appendChild(o); });
+sel.addEventListener('change', () => loadCase(sel.value));
+document.getElementById('resetBtn').onclick = () => loadCase(sel.value);
+let spin = false;
+document.getElementById('spinBtn').onclick = () => { spin = !spin; controls.autoRotate = spin; controls.autoRotateSpeed = 1.4; };
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+(function tick(){ requestAnimationFrame(tick); controls.update(); renderer.render(scene, camera); })();
+
+loadCase('C0001');
+</script>
+</body>
+</html>
