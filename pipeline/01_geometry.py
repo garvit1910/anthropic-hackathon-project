@@ -42,32 +42,49 @@ def load_and_clean_mesh(path: str):
 
 
 # ── reconstruction path: TOF-MRA .nii → surface ─────────────────────────────────────────────
-def reconstruct_from_tof_mra(nii_path: str, percentile: float = 99.5, sigmas=(1, 2, 3, 4)):
+def reconstruct_from_tof_mra(nii_path: str, brain_mask_path: str | None = None,
+                             method: str = "intensity", percentile: float = 96.0,
+                             min_component_voxels: int = 30, sigmas=(1, 2, 3, 4)):
     """.nii TOF-MRA volume → vessel surface (vertices, faces) in mm world coords.
 
-    TOF-MRA makes flowing blood BRIGHT by design → vessels are bright tubular structures, so
-    Frangi runs with black_ridges=False. We normalize first (stable vesselness), threshold at a
-    high percentile (vessels are a sparse fraction of the brain), keep the single largest
-    connected structure (drops speckle), then marching-cubes to a surface.
-    Fallback for noisy volumes: a pretrained nnU-Net (download weights; no training)."""
+    TOF-MRA makes flowing blood BRIGHT by design, so vessels are the brightest voxels.
+
+    method='intensity' (default, needs brain_mask_path): threshold the brightest voxels inside
+      the brain and keep EVERY vessel component ≥ min_component_voxels — this renders the whole
+      cerebral tree (both hemispheres, distal branches), not just the largest branch. `brain_mask`
+      may be a binary mask OR a brain-extracted angio image (used directly as intensity).
+    method='frangi' (no mask): multiscale vesselness (black_ridges=False) then the same
+      keep-all-sizable-components step.
+    A pretrained nnU-Net (download weights; no training) is the fallback for noisy volumes."""
     import nibabel as nib
     from scipy import ndimage
-    from skimage.filters import frangi
     from skimage.measure import marching_cubes
 
     img = nib.load(nii_path)
     volume = img.get_fdata().astype(np.float32)
-    volume = (volume - volume.min()) / (np.ptp(volume) + 1e-9)
-    vesselness = frangi(volume, sigmas=sigmas, black_ridges=False)
-    mask = vesselness > np.percentile(vesselness, percentile)
 
-    labels, n = ndimage.label(mask)                       # keep the largest connected vessel tree
+    if method == "intensity" and brain_mask_path:
+        bm = nib.load(brain_mask_path).get_fdata().astype(np.float32)
+        if np.unique(bm[::5, ::5, ::5]).size > 10:        # brain-extracted angio → use as intensity
+            intensity, brain = bm, bm > 0
+        else:                                              # binary mask → apply to the raw volume
+            intensity, brain = volume, bm > 0
+        mask = (intensity > np.percentile(intensity[brain], percentile)) & brain
+    else:
+        from skimage.filters import frangi
+        v = (volume - volume.min()) / (np.ptp(volume) + 1e-9)
+        ves = frangi(v, sigmas=sigmas, black_ridges=False)
+        mask = ves > np.percentile(ves, percentile)
+
+    labels, n = ndimage.label(mask)                        # keep every sizable vessel (whole tree)
     if n > 1:
         sizes = ndimage.sum(mask, labels, range(1, n + 1))
-        mask = labels == (int(np.argmax(sizes)) + 1)
+        keep = np.where(sizes >= min_component_voxels)[0] + 1
+        mask = np.isin(labels, keep)
+    mask = ndimage.binary_closing(mask, iterations=1)      # bridge 1-voxel gaps for continuity
 
     verts, faces, _n, _v = marching_cubes(mask.astype(np.float32), level=0.5)
-    verts = nib.affines.apply_affine(img.affine, verts)   # voxel → mm world coordinates
+    verts = nib.affines.apply_affine(img.affine, verts)    # voxel → mm world coordinates
     return verts, faces
 
 
@@ -110,6 +127,10 @@ def main() -> None:
     ap.add_argument("--case", required=True)
     ap.add_argument("--vessel-mesh", help=".vtp/.stl vessel surface (hero path)")
     ap.add_argument("--nii", help="TOF-MRA .nii volume (reconstruction path)")
+    ap.add_argument("--brain-mask", help="brain mask / brain-extracted angio (full-vasculature recon)")
+    ap.add_argument("--recon-method", choices=["intensity", "frangi"], default="intensity")
+    ap.add_argument("--recon-percentile", type=float, default=96.0)
+    ap.add_argument("--min-component-voxels", type=int, default=30)
     ap.add_argument("--aneurysm-center", type=float, nargs=3, help="x y z of the sac (mm)")
     ap.add_argument("--aneurysm-radius", type=float, default=6.0, help="clip radius (mm)")
     ap.add_argument("--out", default="artifacts")
@@ -122,7 +143,9 @@ def main() -> None:
         vessel = load_and_clean_mesh(args.vessel_mesh)
         v, f = _pv_to_arrays(vessel)
     elif args.nii:
-        v, f = reconstruct_from_tof_mra(args.nii)
+        v, f = reconstruct_from_tof_mra(args.nii, brain_mask_path=args.brain_mask,
+                                        method=args.recon_method, percentile=args.recon_percentile,
+                                        min_component_voxels=args.min_component_voxels)
         import pyvista as pv
         vessel = pv.PolyData(v, np.hstack([np.full((len(f), 1), 3), f]).astype(np.int64))
     else:
