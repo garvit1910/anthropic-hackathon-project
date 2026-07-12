@@ -116,6 +116,42 @@ def analytic_streamlines(graph: dict, seeds_per_entry: int = 4, n_pts: int = 60,
     return lines
 
 
+BLOOD_VISCOSITY_PA_S = 0.0035      # dynamic viscosity of blood
+REF_VELOCITY_M_S = 0.30            # representative cerebral-artery mean velocity
+
+
+def analytic_hemodynamics(graph: dict, mu: float = BLOOD_VISCOSITY_PA_S,
+                          v_ref: float = REF_VELOCITY_M_S) -> dict:
+    """Tier-3 analytic hemodynamics proxy — NOT a CFD solve (flagged as such).
+
+    Poiseuille wall shear stress per vessel segment: tau = 4*mu*V / r  (narrower vessel => higher
+    WSS). The aneurysm sac is a dead-end pouch with recirculation, so it sees LOW wall shear (a
+    fraction of the parent) and an elevated oscillatory-shear estimate. Gives non-zero, physically
+    grounded numbers without a solver; Tier 1/2 overwrite these with real WSS when available."""
+    radii = [e["mean_radius_mm"] for e in graph["edges"] if e.get("mean_radius_mm")]
+    radii = [r for r in radii if r and r > 0] or \
+            [n["radius"] for n in graph["nodes"] if n.get("radius")]
+    wss = [4.0 * mu * v_ref / (r * 1e-3) for r in radii]          # Pa
+    peak, mean = max(wss), sum(wss) / len(wss)
+
+    an = next((n for n in graph["nodes"] if n["type"] == "aneurysm"), None)
+    parent_r = (an.get("radius") if an else None) or (sum(radii) / len(radii))
+    parent_wss = 4.0 * mu * v_ref / (parent_r * 1e-3)
+    sac_wss = 0.12 * parent_wss                                   # recirculation ~ 10-15% of parent
+    low_thr = 0.4                                                 # common low-shear threshold (Pa)
+    lsa = max(0.05, min(0.9, (low_thr - sac_wss) / low_thr)) if sac_wss < low_thr else 0.05
+    osi = round(min(0.3, 0.5 * (1 - sac_wss / parent_wss)), 4)    # steady-proxy estimate, flagged
+    return {
+        "peak_wss_pa": round(peak, 3),
+        "mean_wss_pa": round(mean, 3),
+        "osi_max": osi,
+        "low_shear_area_fraction": round(lsa, 3),
+        "_tier": "3-analytic-proxy",
+        "_note": "Poiseuille WSS from vessel radii; OSI & low-shear are analytic sac estimates, "
+                 "NOT a transient CFD solve. Suggestive, not decisive (WSS<->rupture is contested).",
+    }
+
+
 # ── Tier 1 / Tier 2 (need the aneurysm mesh + dataset WSS; wired in the conda env) ──────────
 def bake_dataset_wss(aneurysm_glb: str, wss_values, out_glb: str) -> dict:
     """Write per-vertex WSS as COLOR_0 on aneurysm.glb (chosen contract convention) and return
@@ -146,6 +182,14 @@ def main() -> None:
     with open(out_path, "w") as f:
         json.dump(streamlines, f, indent=2)
     print(f"wrote {out_path}: {len(streamlines['streamlines'])} streamlines (Tier 3 proxy)")
+
+    # Tier-3 hemodynamics summary so Phase 4 has non-zero WSS/OSI (flagged as a proxy).
+    hemo = analytic_hemodynamics(graph)
+    hemo_path = os.path.join(case_dir, "hemodynamics.json")
+    with open(hemo_path, "w") as f:
+        json.dump(hemo, f, indent=2)
+    print(f"wrote {hemo_path}: peak_wss={hemo['peak_wss_pa']}Pa mean_wss={hemo['mean_wss_pa']}Pa "
+          f"osi={hemo['osi_max']} lsa={hemo['low_shear_area_fraction']} (Tier-3 analytic)")
 
 
 if __name__ == "__main__":

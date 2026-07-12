@@ -123,7 +123,7 @@ def main() -> None:
     geom = morph.compute_geometry_from_mesh(mesh, parent_r, morph.normalize_location("ICA"))
     if args.manifest:
         clin = morph.load_clinical_aneurisk(args.manifest)
-        hemo, _ = morph.load_hemodynamics(None)
+        hemo, _ = morph.load_hemodynamics(None, cdir)
         mj = morph.assemble(args.case, geom, hemo, clin)
         if not contracts.validate_morphology(mj):
             json.dump(mj, open(os.path.join(cdir, "morphology.json"), "w"), indent=2)

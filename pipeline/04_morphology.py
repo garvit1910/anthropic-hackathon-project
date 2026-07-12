@@ -209,13 +209,14 @@ def compute_geometry_from_mesh(mesh, parent_radius_mm: float, location: str) -> 
 
 
 # ── hemodynamics (from Phase 3, or flagged placeholder) ─────────────────────────────────────
-def load_hemodynamics(path: str | None) -> tuple[dict, bool]:
-    """Return (hemodynamics dict, is_real). If no Phase-3 WSS sidecar exists, emit a zeroed
-    placeholder and flag it — the copilot must then present flow as proxy-only."""
-    if path and os.path.isfile(path):
-        with open(path) as f:
-            hemo = json.load(f)
-        return hemo, True
+def load_hemodynamics(path: str | None, case_dir: str | None = None) -> tuple[dict, bool]:
+    """Return (hemodynamics dict, is_real). Reads an explicit --hemo-json, else the Phase-3
+    hemodynamics.json sidecar in the case dir. Only if neither exists does it emit a zeroed
+    placeholder — that was the bug that left C0001 all-zeros (Phase 3 hadn't written a summary)."""
+    for candidate in (path, os.path.join(case_dir, "hemodynamics.json") if case_dir else None):
+        if candidate and os.path.isfile(candidate):
+            with open(candidate) as f:
+                return json.load(f), True
     return {"peak_wss_pa": 0.0, "mean_wss_pa": 0.0, "osi_max": 0.0,
             "low_shear_area_fraction": 0.0}, False
 
@@ -283,9 +284,9 @@ def main() -> None:
         raise SystemExit("provide --manifest (Aneurisk) or --vessel-file-id (AneuX) for clinical data")
     mesh = _load_aneurysm_mesh(os.path.join(case_dir, "aneurysm.glb"))
     geometry = compute_geometry_from_mesh(mesh, parent_radius, clinical["_location"])
-    hemodynamics, is_real = load_hemodynamics(args.hemo_json)
+    hemodynamics, is_real = load_hemodynamics(args.hemo_json, case_dir)
     if not is_real:
-        print("  ⚠ no real WSS (Tier 1/2 not run) — hemodynamics is a flagged placeholder")
+        print("  ⚠ no hemodynamics.json (run Phase 3 first) — WSS/OSI are zeroed placeholders")
 
     morph = assemble(args.case, geometry, hemodynamics, clinical)
     errs = contracts.validate_morphology(morph)
