@@ -11,10 +11,10 @@
   "hemodynamics": {
     "peak_wss_pa": 83.219,
     "mean_wss_pa": 17.55,
-    "osi_max": 4.7419,
+    "osi_max": 0.0474,
     "low_shear_area_fraction": 0.1,
     "_source": "CMHA CFD (Song et al., Sci Data 2024, figshare 26965450)",
-    "_note": "WSS/OSI are real CFD; low_shear_area_fraction is a placeholder (per-vertex WSS not in the summary release)."
+    "_note": "WSS/OSI are real CFD; OSI converted from the dataset's percent column (raw 4.74% -> 0.047). low_shear_area_fraction is a placeholder (per-vertex WSS not in the summary release)."
   },
   "clinical": {
     "rupture_status": "unruptured",

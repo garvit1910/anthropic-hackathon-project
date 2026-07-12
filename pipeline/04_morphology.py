@@ -116,13 +116,18 @@ def load_cmha(stats_dir: str, number: str) -> dict:
         "size_ratio": _num(m["The ratio of H to the average of D1, D2, and D3.(SR)"]),
         "location": normalize_location(c.get("location", "")),
     }
+    # The dataset reports OSI as a PERCENTAGE (all 105 cases fall in 2.05-17.0, i.e. 0.02-0.17
+    # once divided by 100 — a textbook aneurysm OSI range). Raw OSI is bounded to [0, 0.5], so
+    # 4.74 is impossible; convert %→fraction and clamp defensively.
+    osi = min(0.5, max(0.0, round(float(h[osi_key]) / 100.0, 4)))
     hemodynamics = {
         "peak_wss_pa": _num(h["Max WSS[Pa]"]),
         "mean_wss_pa": _num(h["Mean WSS[Pa]"]),
-        "osi_max": round(float(h[osi_key]), 4),
+        "osi_max": osi,
         "low_shear_area_fraction": 0.1,  # PLACEHOLDER — see _note
         "_source": "CMHA CFD (Song et al., Sci Data 2024, figshare 26965450)",
-        "_note": "WSS/OSI are real CFD; low_shear_area_fraction is a placeholder "
+        "_note": "WSS/OSI are real CFD; OSI converted from the dataset's percent column "
+                 "(raw 4.74% -> 0.047). low_shear_area_fraction is a placeholder "
                  "(per-vertex WSS not in the summary release).",
     }
     clinical = {

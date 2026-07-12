@@ -137,6 +137,22 @@ def validate_morphology(obj: dict) -> list[str]:
         errs.append("morphology.json clinical.patient_age: must be a number")
     if clin.get("patient_sex") not in SEX_VALUES:
         errs.append(f"morphology.json clinical.patient_sex: must be one of {sorted(SEX_VALUES)}")
+
+    # Physical bounds — silent out-of-range data is a real bug (e.g. a dataset that reports OSI
+    # as a percentage would pass the is-a-number check while being physically impossible).
+    def _inrange(block, key, lo, hi):
+        v = block.get(key)
+        if _is_number(v) and not (lo <= v <= hi):
+            errs.append(f"morphology.json {key}={v} out of physical range [{lo}, {hi}]")
+    _inrange(hemo, "osi_max", 0.0, 0.5)                 # OSI is bounded to [0, 0.5] by definition
+    _inrange(hemo, "low_shear_area_fraction", 0.0, 1.0)
+    _inrange(clin, "patient_age", 0.0, 120.0)
+    for k in ("peak_wss_pa", "mean_wss_pa"):
+        if _is_number(hemo.get(k)) and hemo[k] < 0:
+            errs.append(f"morphology.json hemodynamics.{k}={hemo[k]} must be >= 0")
+    for k in ("max_diameter_mm", "height_mm", "neck_width_mm", "aspect_ratio", "size_ratio"):
+        if _is_number(geo.get(k)) and geo[k] < 0:
+            errs.append(f"morphology.json geometry.{k}={geo[k]} must be >= 0")
     return errs
 
 
