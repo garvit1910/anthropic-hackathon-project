@@ -29,3 +29,6 @@ aneurisk/
 # OS / editor
 .DS_Store
 .claude/settings.local.json
+
+# CMHA dataset (Song et al. 2024, figshare 26965450) — git-ignored like other datasets
+cmha/
