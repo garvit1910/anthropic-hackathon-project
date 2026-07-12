@@ -1,0 +1,19 @@
+{
+  "caseId": "LAUSANNE_ds003949_08",
+  "location": "ICA",
+  "domeHeightMm": 4.08,
+  "neckWidthMm": 3.4,
+  "maxDiameterMm": 4.1,
+  "aspectRatio": 1.2,
+  "sizeRatio": 1.2,
+  "nonSphericityIndex": 0.156,
+  "undulationIndex": 0.054,
+  "inflowAngleDeg": 112,
+  "parentVesselDiameterMm": 3.5,
+  "elementIds": {
+    "dome": "aneurysm_dome",
+    "neck": "neck_region",
+    "inflow_jet": "SL_0",
+    "parent_vessel": "E_TRUNK"
+  }
+}

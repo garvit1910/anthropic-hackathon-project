@@ -1,0 +1,67 @@
+{
+  "caseId": "CTA_2024_017",
+  "elements": [
+    {
+      "id": "aneurysm_dome",
+      "kind": "mesh",
+      "ref": "aneurysm_dome",
+      "label": "Aneurysm dome",
+      "anchor": [
+        1.4,
+        -0.4,
+        1.4
+      ]
+    },
+    {
+      "id": "neck_region",
+      "kind": "region",
+      "ref": "E_NECK",
+      "label": "Neck",
+      "anchor": [
+        0.7,
+        -1.2,
+        0.7
+      ]
+    },
+    {
+      "id": "aneurysm_node",
+      "kind": "node",
+      "ref": "ANEURYSM",
+      "label": "Aneurysm",
+      "anchor": [
+        1.4,
+        -0.4,
+        1.4
+      ]
+    },
+    {
+      "id": "bifurcation",
+      "kind": "node",
+      "ref": "BIF_1",
+      "label": "Bifurcation apex",
+      "anchor": [
+        0,
+        -2,
+        0
+      ]
+    },
+    {
+      "id": "inlet",
+      "kind": "node",
+      "ref": "ICA_R",
+      "label": "ICA inlet",
+      "anchor": [
+        0,
+        -12,
+        0
+      ]
+    }
+  ],
+  "wss": {
+    "minPa": 0.4,
+    "maxPa": 14.6,
+    "meanPa": 3.9,
+    "lowShearAreaPct": 33,
+    "highShearAreaPct": 11
+  }
+}

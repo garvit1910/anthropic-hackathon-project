@@ -1,0 +1,19 @@
+{
+  "caseId": "ANEURISK_C0034",
+  "location": "ICA",
+  "domeHeightMm": 5.4,
+  "neckWidthMm": 3.6,
+  "maxDiameterMm": 5.4,
+  "aspectRatio": 1.5,
+  "sizeRatio": 1.7,
+  "nonSphericityIndex": 0.165,
+  "undulationIndex": 0.06,
+  "inflowAngleDeg": 112,
+  "parentVesselDiameterMm": 3.2,
+  "elementIds": {
+    "dome": "aneurysm_dome",
+    "neck": "neck_region",
+    "inflow_jet": "SL_0",
+    "parent_vessel": "E_TRUNK"
+  }
+}

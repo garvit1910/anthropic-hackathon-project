@@ -1,0 +1,36 @@
+{
+  "name": "anthropic-hackathon-project",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "gen:fixtures": "node scripts/gen-fixtures.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@react-three/drei": "^8.20.2",
+    "@react-three/fiber": "^8.6.2",
+    "framer-motion": "^11.11.17",
+    "next": "14.2.15",
+    "react": "^18",
+    "react-dom": "^18",
+    "three": "^0.136.0",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^3.10.1",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/three": "^0.136.1",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.15",
+    "playwright": "^1.61.1",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}

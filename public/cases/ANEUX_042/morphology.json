@@ -1,0 +1,19 @@
+{
+  "caseId": "ANEUX_042",
+  "location": "ICA",
+  "domeHeightMm": 7.14,
+  "neckWidthMm": 3.4,
+  "maxDiameterMm": 7.2,
+  "aspectRatio": 2.1,
+  "sizeRatio": 1.8,
+  "nonSphericityIndex": 0.183,
+  "undulationIndex": 0.072,
+  "inflowAngleDeg": 112,
+  "parentVesselDiameterMm": 4,
+  "elementIds": {
+    "dome": "aneurysm_dome",
+    "neck": "neck_region",
+    "inflow_jet": "SL_0",
+    "parent_vessel": "E_TRUNK"
+  }
+}

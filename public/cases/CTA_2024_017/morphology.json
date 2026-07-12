@@ -1,0 +1,19 @@
+{
+  "caseId": "CTA_2024_017",
+  "location": "ICA",
+  "domeHeightMm": 9.8,
+  "neckWidthMm": 3.5,
+  "maxDiameterMm": 9.8,
+  "aspectRatio": 2.8,
+  "sizeRatio": 2.6,
+  "nonSphericityIndex": 0.204,
+  "undulationIndex": 0.086,
+  "inflowAngleDeg": 112,
+  "parentVesselDiameterMm": 3.8,
+  "elementIds": {
+    "dome": "aneurysm_dome",
+    "neck": "neck_region",
+    "inflow_jet": "SL_0",
+    "parent_vessel": "E_TRUNK"
+  }
+}
