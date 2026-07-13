@@ -152,11 +152,50 @@ def analytic_hemodynamics(graph: dict, mu: float = BLOOD_VISCOSITY_PA_S,
     }
 
 
-# ── Tier 1 / Tier 2 (need the aneurysm mesh + dataset WSS; wired in the conda env) ──────────
-def bake_dataset_wss(aneurysm_glb: str, wss_values, out_glb: str) -> dict:
-    """Write per-vertex WSS as COLOR_0 on aneurysm.glb (chosen contract convention) and return
-    the scalar summaries for morphology.json. Requires trimesh (conda env)."""
-    raise NotImplementedError("Tier 1: map dataset WSS -> COLOR_0 on aneurysm.glb")
+def _jet(t: np.ndarray) -> np.ndarray:
+    """Scalar field in [0,1] -> jet RGBA (blue low -> red high) as uint8."""
+    t = np.clip(t, 0, 1)
+    r = np.clip(1.5 - np.abs(4 * t - 3), 0, 1)
+    g = np.clip(1.5 - np.abs(4 * t - 2), 0, 1)
+    b = np.clip(1.5 - np.abs(4 * t - 1), 0, 1)
+    return (np.column_stack([r, g, b, np.ones_like(t)]) * 255).astype(np.uint8)
+
+
+def bake_wss_heatmap(case_dir: str) -> tuple:
+    """Tier-1 slot (analytic spatial proxy): write a PER-VERTEX WSS field as COLOR_0 on
+    aneurysm.glb so the viewer's WSS heatmap has real spatial data instead of a solid color.
+
+    Physiological pattern without a CFD solve: the inflow jet keeps WSS HIGH near the neck, while
+    the dome sees recirculation -> LOW WSS (the low-shear region). We scale that gradient to the
+    case's peak WSS (real CFD for CMHA; analytic proxy for Aneurisk) and emit wss.json, clearly
+    flagged as a proxy. Requires trimesh."""
+    import trimesh
+
+    graph = json.load(open(os.path.join(case_dir, "graph.json")))
+    morph = json.load(open(os.path.join(case_dir, "morphology.json")))
+    peak = float(morph["hemodynamics"].get("peak_wss_pa") or 1.0) or 1.0
+    an_id = graph["aneurysm_node"]
+    nbrs = [e["source"] if e["target"] == an_id else e["target"]
+            for e in graph["edges"] if an_id in (e["source"], e["target"])]
+    pos = {n["id"]: np.array(n["pos"], float) for n in graph["nodes"]}
+    ref = pos[nbrs[0]] if nbrs else pos[an_id]              # parent vessel node = neck/inflow
+
+    glb = os.path.join(case_dir, "aneurysm.glb")
+    mesh = trimesh.load(glb, force="mesh")
+    V = np.asarray(mesh.vertices)
+    dn = np.linalg.norm(V - ref, axis=1)
+    dn = (dn - dn.min()) / (np.ptp(dn) + 1e-9)             # 0 at neck -> 1 at dome
+    wss = peak * (0.15 + 0.85 * (1.0 - dn))                # high at neck, ~15% peak at the dome
+    mesh.visual = trimesh.visual.ColorVisuals(mesh=mesh, vertex_colors=_jet(wss / peak))
+    mesh.export(glb)
+    json.dump({"case_id": graph["case_id"], "units": "Pa", "peak_wss_pa": round(peak, 3),
+               "min_wss_pa": round(float(wss.min()), 3), "n_vertices": int(len(V)),
+               "per_vertex_wss_pa": [round(float(w), 4) for w in wss],
+               "_tier": "1-analytic-proxy",
+               "_note": "Per-vertex WSS is an analytic spatial proxy (high at neck inflow, low at "
+                        "dome recirculation) scaled to the case peak WSS — NOT a CFD-solved field."},
+              open(os.path.join(case_dir, "wss.json"), "w"), indent=2)
+    return wss, peak
 
 
 def main() -> None:
@@ -164,9 +203,18 @@ def main() -> None:
     ap.add_argument("--case", required=True)
     ap.add_argument("--artifacts", default="artifacts")
     ap.add_argument("--seeds-per-entry", type=int, default=4)
+    ap.add_argument("--bake-wss", action="store_true",
+                    help="only bake the per-vertex WSS heatmap onto aneurysm.glb (needs morphology.json)")
     args = ap.parse_args()
 
     case_dir = os.path.join(args.artifacts, f"case_{args.case}")
+
+    if args.bake_wss:
+        wss, peak = bake_wss_heatmap(case_dir)
+        print(f"baked WSS heatmap on aneurysm.glb: {len(wss)} verts, "
+              f"{wss.min():.2f}-{peak:.2f} Pa -> COLOR_0 + wss.json")
+        return
+
     with open(os.path.join(case_dir, "graph.json")) as f:
         graph = json.load(f)
 
