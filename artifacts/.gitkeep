@@ -1,0 +1,2 @@
+# Real artifacts land here (git-ignored binaries). This file just keeps the folder in git so
+# it exists as the merge target: at Phase 7, the app flips artifacts_mock/ -> artifacts/.
