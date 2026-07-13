@@ -63,7 +63,7 @@
   <label class="row"><input type="checkbox" id="t-cath" checked><span class="sw" style="background:#ffe34a"></span>Catheter route</label>
 
   <div class="sec">Node types</div>
-  <div class="row"><span class="sw" style="background:#38d96b"></span>entry &nbsp;<span class="sw" style="background:#ff3b3b"></span>aneurysm &nbsp;<span class="sw" style="background:#4aa3ff"></span>bifurcation &nbsp;<span class="sw" style="background:#8b97a3"></span>endpoint</div>
+  <div class="row"><span class="sw" style="background:#38d96b"></span>entry &nbsp;<span class="sw" style="background:#ff3b3b"></span>aneurysm &nbsp;<span class="sw" style="background:#4aa3ff"></span>bifurcation &nbsp;<span class="sw" style="background:#6fa8dc"></span>endpoint</div>
 
   <div class="sec">Morphology</div>
   <div id="morph">—</div>
@@ -84,8 +84,8 @@ const statusEl = document.getElementById('status');
 const setStatus = (t) => statusEl.textContent = t;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0d12);           // clean dark slate
-scene.fog = new THREE.Fog(0x0a0d12, 240, 680);
+scene.background = new THREE.Color(0x050608);           // near-black — deep red vessels pop against it
+scene.fog = new THREE.Fog(0x050608, 240, 680);
 
 const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 5000);
 const renderer = new THREE.WebGLRenderer({ antialias:true });
@@ -133,7 +133,7 @@ const bust = (u) => u + '?t=' + Date.now();   // artifacts change on disk; never
 async function fetchJSON(u){ const r = await fetch(bust(u), { headers: { 'ngrok-skip-browser-warning': 'true' } }); if(!r.ok) throw new Error(u); return r.json(); }
 function loadGLB(u){ return new Promise((res,rej)=> gltf.load(bust(u), g=>res(g), undefined, rej)); }
 
-const TYPE_COLOR = { entry:0x38d96b, aneurysm:0xff3b3b, bifurcation:0x4aa3ff, endpoint:0x8b97a3 };
+const TYPE_COLOR = { entry:0x38d96b, aneurysm:0xff3b3b, bifurcation:0x4aa3ff, endpoint:0x6fa8dc };
 
 function frame(box){
   const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
@@ -159,9 +159,9 @@ async function loadCase(name){
     const g = await loadGLB(base + 'vessel_tree.glb');
     g.scene.traverse(o => { if (o.isMesh) {
       o.geometry.computeVertexNormals();          // trimesh GLB has no normals -> lighting=black
-      o.material = new THREE.MeshStandardMaterial({ color:0xe0483a, emissive:0x2a0a06,
-        emissiveIntensity:.3, transparent:true, opacity:.5, roughness:.5, metalness:.05,
-        side:THREE.DoubleSide });   // OG anatomical red vessels
+      o.material = new THREE.MeshStandardMaterial({ color:0xe0483a, emissive:0x3a0e08,
+        emissiveIntensity:.4, transparent:true, opacity:.55, roughness:.45, metalness:.05,
+        side:THREE.DoubleSide });   // OG deep-red vessels — a touch more vibrant/visible on black
       groups.vessel.add(o.clone());
     }});
     box.expandByObject(groups.vessel); gotGeom = true;
