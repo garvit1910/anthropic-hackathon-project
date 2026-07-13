@@ -1,13 +1,5 @@
 import type { AgentServerEvent } from "@/lib/agent/types";
-import type { ViewerMode } from "@/types";
-import { useConsoleStore } from "@/lib/store";
-
-const MODE_MAP: Record<string, ViewerMode> = {
-  anatomy: "anatomy",
-  hemodynamics: "hemodynamics",
-  whatif: "whatif",
-  navigation: "navigation",
-};
+import { postToViewer } from "./viewerBridge";
 
 const isFlowQuery = (input: Record<string, unknown>): boolean => {
   const topic = String(input?.topic ?? "").toLowerCase();
@@ -16,21 +8,22 @@ const isFlowQuery = (input: Record<string, unknown>): boolean => {
   return topic === "wss" || applies.includes("wss") || /shear|wss|hemodynam|flow|osi|inflow/.test(q);
 };
 
+const showFlow = () => {
+  postToViewer({ type: "setWss", on: true });
+  postToViewer({ type: "setLayer", id: "t-stream", on: true });
+};
+
 /**
- * Translates a streamed agent event into a viewer state change — this is what
- * makes the 3D "follow" Claude's reasoning. Returns a short human note (for the
- * tool-trace card) describing the view change, if any.
+ * Translates a streamed agent event into a command for Rounak's embedded viewer
+ * (postMessage) — this is what makes his 3D "follow" Claude's reasoning. Returns
+ * a short human note (for the tool-trace card) describing the view change.
  */
 export function directorHandle(e: AgentServerEvent): string | undefined {
-  const s = useConsoleStore.getState();
-
   if (e.type === "tool_call") {
-    // Nudge to hemodynamics as soon as Claude starts probing flow/WSS evidence.
+    // Reveal flow/WSS as soon as Claude starts probing hemodynamic evidence.
     if (e.name === "query_literature" && isFlowQuery(e.input)) {
-      s.setMode("hemodynamics");
-      s.setStreamlinesVisible(true);
-      s.setWssVisible(true);
-      return "hemodynamics · streamlines + WSS";
+      showFlow();
+      return "hemodynamics · WSS heatmap + flow";
     }
     return undefined;
   }
@@ -39,37 +32,35 @@ export function directorHandle(e: AgentServerEvent): string | undefined {
   const r = e.result as any;
 
   switch (e.name) {
+    case "get_morphology":
+      postToViewer({ type: "focusAneurysm" });
+      return "focus aneurysm";
+
     case "highlight_geometry": {
-      const ids: string[] = Array.isArray(r?.elementIds) ? r.elementIds : [];
-      const mode = r?.mode && MODE_MAP[r.mode] ? MODE_MAP[r.mode] : undefined;
-      s.applyHighlightCommand({ elementIds: ids, mode });
-      if (r?.annotation && ids.length) {
-        s.setAnnotations([{ id: `ann-${ids.join("-")}`, elementId: ids[0], text: r.annotation, anchor: [0, 0, 0] }]);
+      const mode = String(r?.mode ?? "");
+      if (mode === "hemodynamics") {
+        showFlow();
+        postToViewer({ type: "focusAneurysm" });
+        return "hemodynamics · WSS + flow";
       }
-      const modeNote = mode ? `${mode} · ` : "";
-      return `${modeNote}highlight ${ids.join(", ") || "(none)"}`;
-    }
-    case "get_morphology": {
-      s.setMode("anatomy");
-      s.setHighlights(["aneurysm_dome"]);
-      return "anatomy · dome highlighted";
-    }
-    case "find_catheter_path": {
-      s.setMode("navigation");
-      s.setHighlights(["entry_node", "aneurysm_node"]);
-      return r?.feasible ? "navigation · route traced" : "navigation · no feasible route";
-    }
-    case "perturb_morphology": {
-      s.setMode("whatif");
-      const after = r?.after;
-      if (after && typeof after.maxDiameterMm === "number") {
-        s.setMorphologyOverride({
-          domeSizeMm: after.maxDiameterMm,
-          neckWidthMm: typeof after.neckWidthMm === "number" ? after.neckWidthMm : s.morphologyOverride?.neckWidthMm ?? 0,
-        });
+      if (mode === "navigation") {
+        postToViewer({ type: "setLayer", id: "t-cath", on: true });
+        postToViewer({ type: "focusAneurysm" });
+        return "navigation · catheter route";
       }
-      return `what-if · dome → ${after?.maxDiameterMm ?? "?"} mm`;
+      postToViewer({ type: "focusAneurysm" });
+      return "focus aneurysm";
     }
+
+    case "find_catheter_path":
+      postToViewer({ type: "setLayer", id: "t-cath", on: true });
+      postToViewer({ type: "focusAneurysm" });
+      return r?.feasible ? "catheter route" : "no feasible route";
+
+    case "perturb_morphology":
+      postToViewer({ type: "focusAneurysm" });
+      return `what-if · dome → ${r?.after?.maxDiameterMm ?? "?"} mm`;
+
     default:
       return undefined;
   }

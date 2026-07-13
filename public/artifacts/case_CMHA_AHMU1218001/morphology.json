@@ -1,0 +1,26 @@
+{
+  "case_id": "CMHA_AHMU1218001",
+  "geometry": {
+    "max_diameter_mm": 3.204,
+    "height_mm": 2.007,
+    "neck_width_mm": 3.197,
+    "aspect_ratio": 0.628,
+    "size_ratio": 0.598,
+    "location": "MCA"
+  },
+  "hemodynamics": {
+    "peak_wss_pa": 83.219,
+    "mean_wss_pa": 17.55,
+    "osi_max": 0.0474,
+    "low_shear_area_fraction": 0.1,
+    "_source": "CMHA CFD (Song et al., Sci Data 2024, figshare 26965450)",
+    "_note": "WSS/OSI are real CFD; OSI converted from the dataset's percent column (raw 4.74% -> 0.047). low_shear_area_fraction is a placeholder (per-vertex WSS not in the summary release)."
+  },
+  "clinical": {
+    "rupture_status": "unruptured",
+    "patient_age": 74.0,
+    "patient_sex": "F",
+    "phase_score": 1.0,
+    "elapss_score": 4.0
+  }
+}

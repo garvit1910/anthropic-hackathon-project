@@ -10,6 +10,7 @@
     "gen:fixtures": "node scripts/gen-fixtures.mjs",
     "gen:artifacts": "node scripts/gen-artifacts.mjs",
     "adopt:hero": "node scripts/adopt-hero.mjs && node scripts/optimize-hero-glb.mjs",
+    "stage:viewer": "node scripts/stage-viewer-assets.mjs",
     "agent:preflight": "tsx scripts/preflight.ts",
     "agent:index": "tsx scripts/index-corpus.ts",
     "agent": "tsx scripts/agent-cli.ts"

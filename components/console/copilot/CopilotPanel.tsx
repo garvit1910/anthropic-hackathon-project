@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { CaseMeta } from "@/types";
 import { useConsoleStore } from "@/lib/store";
 import { useAgentStream } from "./useAgentStream";
 import AssistantTurn from "./AssistantTurn";
@@ -10,10 +9,10 @@ import Composer from "./Composer";
 /**
  * The reasoning console. Not a chatbot: a scientific transcript where each
  * question streams Claude's live chain of thought + tool traces (which drive
- * the 3D) and lands a structured risk verdict.
+ * the embedded 3D viewer) and lands a structured risk verdict.
  */
-export default function CopilotPanel({ caseMeta }: { caseMeta: CaseMeta }) {
-  const { messages, isStreaming, submit, stop } = useAgentStream(caseMeta.id);
+export default function CopilotPanel({ caseId }: { caseId: string }) {
+  const { messages, isStreaming, submit, stop } = useAgentStream(caseId);
   const queuedQuestion = useConsoleStore((s) => s.queuedQuestion);
   const queueQuestion = useConsoleStore((s) => s.queueQuestion);
 
@@ -46,7 +45,7 @@ export default function CopilotPanel({ caseMeta }: { caseMeta: CaseMeta }) {
           <h2 className="display text-[13px] font-semibold tracking-wide text-text-hi">Reasoning copilot</h2>
         </div>
         <span className="num text-[10px] text-text-lo">
-          {isStreaming ? "reasoning…" : "idle"} · {caseMeta.id}
+          {isStreaming ? "reasoning…" : "idle"} · {caseId}
         </span>
       </div>
 
