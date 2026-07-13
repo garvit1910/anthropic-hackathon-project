@@ -22,7 +22,7 @@ export default function CasesPage() {
     <main className="min-h-screen bg-black pt-24">
       <SiteNav />
       <div className="mx-auto max-w-6xl px-5 pb-24 sm:px-8">
-        <p className="display text-xs uppercase tracking-[0.35em] text-accent">
+        <p className="display text-xs uppercase tracking-[0.35em] text-text-lo">
           Hero cases
         </p>
         <h1 className="mt-3 text-3xl font-semibold text-text-hi">Case gallery</h1>

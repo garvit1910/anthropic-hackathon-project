@@ -5,7 +5,7 @@ import type { CaseMeta } from "@/types";
 import { useConsoleStore } from "@/lib/store";
 import ModeRail from "./ModeRail";
 import VesselViewer from "./VesselViewer";
-import CopilotPanelPlaceholder from "./CopilotPanelPlaceholder";
+import CopilotPanel from "./copilot/CopilotPanel";
 
 function ConsoleHeader({ caseMeta }: { caseMeta: CaseMeta }) {
   const demoMode = useConsoleStore((s) => s.demoMode);
@@ -13,8 +13,8 @@ function ConsoleHeader({ caseMeta }: { caseMeta: CaseMeta }) {
     <header className="glass z-30 flex items-center justify-between border-b border-white/5 px-4 py-2.5">
       <Link href="/" className="flex items-center gap-2 text-text-lo hover:text-text-hi">
         <span aria-hidden>←</span>
-        <span className="display text-xs font-bold tracking-widest text-text-hi">
-          NEUROVAS<span className="text-accent"> COPILOT</span>
+        <span className="font-hero text-xs font-bold uppercase tracking-[0.16em] text-white">
+          NeuroVas Copilot
         </span>
       </Link>
       <div className="hidden items-center gap-3 text-center sm:flex">
@@ -46,15 +46,13 @@ export default function ConsoleLayout({ caseMeta }: { caseMeta: CaseMeta }) {
   return (
     <div className="flex h-[100svh] flex-col bg-black">
       <ConsoleHeader caseMeta={caseMeta} />
-      <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[76px_1fr_380px]">
+      <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[72px_1fr_clamp(440px,34vw,560px)]">
         <ModeRail />
-        <div className="relative h-[52vh] min-h-0 lg:h-auto">
+        <div className="relative h-[48vh] min-h-0 lg:h-auto">
           <VesselViewer caseMeta={caseMeta} />
         </div>
         <div className="min-h-0 flex-1 lg:flex-none">
-          <div className="h-full">
-            <CopilotPanelPlaceholder caseMeta={caseMeta} />
-          </div>
+          <CopilotPanel caseMeta={caseMeta} />
         </div>
       </div>
     </div>

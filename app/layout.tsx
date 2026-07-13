@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Orbitron, Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const orbitron = Orbitron({
+// Technical grotesk for headings/wordmark (tracked caps) — a precise, clinical
+// display face (Orbitron's "space-techy" look dropped).
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  weight: ["400", "500", "700", "900"],
-  variable: "--font-orbitron",
+  weight: ["400", "500", "700"],
+  variable: "--font-hero",
   display: "swap",
 });
 
@@ -29,7 +31,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: "#0a0c10",
   colorScheme: "dark",
 };
 
@@ -41,7 +43,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${orbitron.variable} ${inter.variable} ${jetbrainsMono.variable} bg-bg-deep text-text-hi antialiased`}
+        className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} bg-bg-deep text-text-hi antialiased`}
       >
         {children}
       </body>

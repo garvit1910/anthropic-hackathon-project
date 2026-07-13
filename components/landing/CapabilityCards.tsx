@@ -37,7 +37,7 @@ const CAPABILITIES: Capability[] = [
     title: "Cited Reasoning",
     blurb:
       "Every claim carries its RAG source — and flags the contested WSS↔rupture science.",
-    color: "var(--accent)",
+    color: "var(--violet)",
     icon: <><path d="M6 4h9l3 3v13H6z" /><path d="M9 9h6M9 13h6M9 17h4" /></>,
   },
 ];

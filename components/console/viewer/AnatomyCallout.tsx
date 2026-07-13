@@ -22,7 +22,7 @@ export default function AnatomyCallout({
   label,
   detail,
   tone = PALETTE.aneurysm,
-  offset = [1.6, 1.2, 0],
+  offset = [-1.9, 1.3, 0],
 }: {
   anchor: Vec3;
   label: string;

@@ -65,6 +65,37 @@ export interface AgentResult {
   sources: Citation[];
 }
 
+/**
+ * Streaming events emitted by runAgent while it works (thinking + tool traces).
+ * The HTTP route serializes these as SSE; the CLI prints them.
+ */
+export type AgentStreamEvent =
+  | { type: "thinking"; text: string } // summarized-reasoning delta
+  | { type: "text"; text: string } // final-answer prose delta
+  | { type: "tool_call"; id: string; name: string; input: Record<string, unknown> }
+  | {
+      type: "tool_result";
+      id: string;
+      name: string;
+      status: ToolStatus;
+      durationMs?: number;
+      summary?: string;
+      error?: string;
+      result?: unknown; // full payload — the viewer director acts on this
+    };
+
+/**
+ * The full server→client SSE contract: the streaming events above plus the
+ * terminal structured results. `answer` carries the clean prose (JSON stripped).
+ */
+export type AgentServerEvent =
+  | AgentStreamEvent
+  | { type: "answer"; content: string }
+  | { type: "risk"; risk: RiskAssessment | null }
+  | { type: "sources"; sources: Citation[] }
+  | { type: "done" }
+  | { type: "error"; message: string };
+
 /** The raw corpus chunk shape as authored on disk. */
 export interface CorpusMeta {
   source: string;

@@ -26,15 +26,24 @@ process.env.GEMINI_API_KEY
   ? ok("GEMINI_API_KEY set")
   : warn("GEMINI_API_KEY missing — semantic retrieval will fall back to keyword scoring");
 
-console.log("\n[2] artifacts (case_C0001)");
-const caseDir = path.join(process.cwd(), "artifacts", "case_C0001");
-for (const f of ["morphology.json", "hemodynamics.json", "graph.json"]) {
-  const p = path.join(caseDir, f);
-  fs.existsSync(p) ? ok(`${f}`) : bad(`artifacts/case_C0001/${f} missing`);
-}
-if (fs.existsSync(path.join(caseDir, "morphology.json"))) {
+console.log("\n[2] agent artifacts (per UI case)");
+// The console drives the agent with the UI case id (ANEUX_042, …). Each needs
+// a matching artifacts/case_<id>/ folder, generated from public/cases via
+// `npm run gen:artifacts`. C0001 is the legacy standalone case.
+const artifactsRoot = path.join(process.cwd(), "artifacts");
+const expected = ["case_ANEUX_042", "case_ANEURISK_C0034", "case_CTA_2024_017", "case_LAUSANNE_ds003949_08"];
+for (const folder of expected) {
+  const caseDir = path.join(artifactsRoot, folder);
+  const missing = ["morphology.json", "hemodynamics.json", "graph.json"].filter(
+    (f) => !fs.existsSync(path.join(caseDir, f)),
+  );
+  if (!fs.existsSync(caseDir) || missing.length) {
+    bad(`artifacts/${folder} missing ${missing.length ? missing.join(", ") : "(folder)"} — run: npm run gen:artifacts`);
+    continue;
+  }
   const m = JSON.parse(fs.readFileSync(path.join(caseDir, "morphology.json"), "utf8"));
-  if (m.clinical) console.log(`  ${D}     morphology.json carries a clinical block (${Object.keys(m.clinical).join(", ")}) — get_morphology strips it${X}`);
+  const g = m.geometry ?? {};
+  ok(`${folder}  ${g.location} Ø${g.max_diameter_mm}mm AR ${g.aspect_ratio}`);
 }
 
 console.log("\n[3] corpus");

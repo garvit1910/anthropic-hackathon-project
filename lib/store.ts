@@ -31,10 +31,20 @@ export interface ConsoleState {
   catheterPath: CatheterPath | null;
   streamlinesVisible: boolean;
   wssVisible: boolean;
+  /** Context layers (independent of mode): translucent brain hull + vessel graph. */
+  brainVisible: boolean;
+  graphVisible: boolean;
 
   // --- chat & agent loop ---
   toolTraces: ToolCallTrace[];
   messages: ChatMessage[];
+
+  // --- reasoning choreography ---
+  /** True while the agent is streaming — boosts auto-rotate + camera focus. */
+  reasoningActive: boolean;
+  /** A question queued by a viewer control (e.g. What-If "re-assess"). The
+   *  copilot consumes and clears it, then submits it to the agent. */
+  queuedQuestion: string | null;
 
   // --- demo safety ---
   demoMode: boolean;
@@ -52,6 +62,8 @@ export interface ConsoleState {
   setCatheterPath: (path: CatheterPath | null) => void;
   setStreamlinesVisible: (v: boolean) => void;
   setWssVisible: (v: boolean) => void;
+  setBrainVisible: (v: boolean) => void;
+  setGraphVisible: (v: boolean) => void;
   addToolTrace: (trace: ToolCallTrace) => void;
   updateToolTrace: (id: string, patch: Partial<ToolCallTrace>) => void;
   clearToolTraces: () => void;
@@ -59,6 +71,8 @@ export interface ConsoleState {
   updateMessage: (id: string, patch: Partial<ChatMessage>) => void;
   setDemoMode: (v: boolean) => void;
   setOffline: (v: boolean) => void;
+  setReasoningActive: (v: boolean) => void;
+  queueQuestion: (q: string | null) => void;
   /** Convenience: apply a highlight_geometry payload in one shot. */
   applyHighlightCommand: (cmd: HighlightCommand) => void;
   /** Reset per-case transient view state (keeps chat history). */
@@ -74,8 +88,12 @@ export const useConsoleStore = create<ConsoleState>((set) => ({
   catheterPath: null,
   streamlinesVisible: false,
   wssVisible: false,
+  brainVisible: false,
+  graphVisible: false,
   toolTraces: [],
   messages: [],
+  reasoningActive: false,
+  queuedQuestion: null,
   demoMode: false,
   offline: false,
 
@@ -96,6 +114,8 @@ export const useConsoleStore = create<ConsoleState>((set) => ({
   setCatheterPath: (path) => set({ catheterPath: path }),
   setStreamlinesVisible: (v) => set({ streamlinesVisible: v }),
   setWssVisible: (v) => set({ wssVisible: v }),
+  setBrainVisible: (v) => set({ brainVisible: v }),
+  setGraphVisible: (v) => set({ graphVisible: v }),
   addToolTrace: (trace) => set((s) => ({ toolTraces: [...s.toolTraces, trace] })),
   updateToolTrace: (id, patch) =>
     set((s) => ({
@@ -109,6 +129,8 @@ export const useConsoleStore = create<ConsoleState>((set) => ({
     })),
   setDemoMode: (v) => set({ demoMode: v }),
   setOffline: (v) => set({ offline: v }),
+  setReasoningActive: (v) => set({ reasoningActive: v }),
+  queueQuestion: (q) => set({ queuedQuestion: q }),
 
   applyHighlightCommand: (cmd) =>
     set((s) => ({
@@ -125,6 +147,10 @@ export const useConsoleStore = create<ConsoleState>((set) => ({
       catheterPath: null,
       streamlinesVisible: false,
       wssVisible: false,
+      brainVisible: false,
+      graphVisible: false,
       toolTraces: [],
+      reasoningActive: false,
+      queuedQuestion: null,
     }),
 }));

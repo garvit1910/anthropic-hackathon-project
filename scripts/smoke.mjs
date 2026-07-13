@@ -9,6 +9,7 @@ const routes = [
   { path: "/console?case=ANEUX_042", name: "console", wait: 4500, canvas: true },
   { path: "/cases", name: "cases", wait: 1200, canvas: false },
   { path: "/method", name: "method", wait: 1000, canvas: false },
+  { path: "/citations", name: "citations", wait: 1000, canvas: false },
   { path: "/about", name: "about", wait: 1000, canvas: false },
 ];
 

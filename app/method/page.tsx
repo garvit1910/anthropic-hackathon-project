@@ -22,7 +22,7 @@ export default function MethodPage() {
     <main className="min-h-screen bg-black pt-24">
       <SiteNav />
       <div className="mx-auto max-w-5xl px-5 pb-24 sm:px-8">
-        <p className="display text-xs uppercase tracking-[0.35em] text-accent">
+        <p className="display text-xs uppercase tracking-[0.35em] text-text-lo">
           Transparency
         </p>
         <h1 className="mt-3 text-3xl font-semibold text-text-hi">
@@ -40,7 +40,7 @@ export default function MethodPage() {
               key={s.n}
               className="glass flex items-start gap-4 rounded-xl p-4"
             >
-              <span className="num text-sm text-accent">{s.n}</span>
+              <span className="num text-sm text-white/50">{s.n}</span>
               <div className="flex-1">
                 <div className="text-sm font-medium text-text-hi">{s.title}</div>
                 <div className="mt-0.5 text-sm text-text-lo">{s.detail}</div>

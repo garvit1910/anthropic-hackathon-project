@@ -142,7 +142,7 @@ export default function BrainHero({
       );
 
     const m = new (LineMaterial as any)({
-      color: 0xff00ff,
+      color: 0x6f8196,
       worldUnits: true,
       linewidth: 0.0375,
       alphaToCoverage: true,
@@ -167,7 +167,7 @@ export default function BrainHero({
       sg.attributes.position.setXYZ(i, v3.x, v3.y, v3.z);
     }
     const sm = new (THREE.MeshBasicMaterial as any)({
-      color: 0x7f00ff,
+      color: 0x4db6c9,
       wireframe: true,
       transparent: true,
       onBeforeCompile: (shader: any) => {
@@ -227,7 +227,7 @@ export default function BrainHero({
     }
     const linkG = new THREE.BufferGeometry().setFromPoints(linkPts);
     const linkM = new (THREE.LineDashedMaterial as any)({
-      color: 0xffff00,
+      color: 0xcf9f4a,
       onBeforeCompile: (shader: any) => {
         shader.uniforms.time = globalUniforms.time;
         shader.uniforms.bloom = globalUniforms.bloom;
@@ -310,7 +310,7 @@ export default function BrainHero({
             const mesh = o as THREE.Mesh;
             if (mesh.isMesh) {
               const mat = new THREE.MeshBasicMaterial({
-                color: 0xff2bd1,
+                color: 0x9aa4bd,
                 transparent: true,
                 opacity: 0,
                 depthWrite: false,
@@ -346,7 +346,7 @@ export default function BrainHero({
       0.85
     );
     bloomPass.threshold = 0;
-    bloomPass.strength = 7;
+    bloomPass.strength = 2.8;
     bloomPass.radius = 0;
 
     const bloomComposer = new EffectComposer(renderer);
@@ -475,7 +475,7 @@ export default function BrainHero({
     >
       {/* Loading state (was #info). Recolored — original was black-on-black. */}
       <div
-        className={`pointer-events-none absolute left-0 right-0 top-1/2 z-10 text-center display text-[2vh] tracking-widest text-accent transition-opacity duration-700 ${
+        className={`pointer-events-none absolute left-0 right-0 top-1/2 z-10 text-center display text-[2vh] tracking-widest text-white/80 transition-opacity duration-700 ${
           ready ? "opacity-0" : "opacity-90"
         }`}
       >

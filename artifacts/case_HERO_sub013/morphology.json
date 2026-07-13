@@ -1,0 +1,24 @@
+{
+  "case_id": "HERO_sub013",
+  "geometry": {
+    "max_diameter_mm": 6.156,
+    "height_mm": 6.542,
+    "neck_width_mm": 6.153,
+    "aspect_ratio": 1.063,
+    "size_ratio": 2.069,
+    "location": "other"
+  },
+  "hemodynamics": {
+    "peak_wss_pa": 6.942,
+    "mean_wss_pa": 4.447,
+    "osi_max": 0.3,
+    "low_shear_area_fraction": 0.203,
+    "_tier": "3-analytic-proxy",
+    "_note": "Poiseuille WSS from vessel radii; OSI & low-shear are analytic sac estimates, NOT a transient CFD solve. Suggestive, not decisive (WSS<->rupture is contested)."
+  },
+  "clinical": {
+    "rupture_status": "unruptured",
+    "patient_age": 60.0,
+    "patient_sex": "unknown"
+  }
+}

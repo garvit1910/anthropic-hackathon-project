@@ -1,0 +1,8 @@
+{
+  "peak_wss_pa": 14.6,
+  "mean_wss_pa": 3.9,
+  "osi_max": 0.24,
+  "low_shear_area_fraction": 0.28,
+  "_tier": "3-analytic-proxy",
+  "_note": "Poiseuille WSS from vessel radii; OSI & low-shear are analytic sac estimates, NOT a transient CFD solve. Suggestive, not decisive (WSS<->rupture is contested)."
+}

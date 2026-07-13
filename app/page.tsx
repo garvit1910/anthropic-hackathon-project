@@ -14,7 +14,7 @@ export default function Home() {
       {/* Below the fold */}
       <div className="mx-auto max-w-6xl px-5 pb-28 sm:px-8">
         <section className="pt-20">
-          <p className="display text-xs uppercase tracking-[0.35em] text-accent">
+          <p className="display text-xs uppercase tracking-[0.35em] text-text-lo">
             What it does
           </p>
           <h2 className="mt-3 max-w-3xl text-2xl font-semibold text-text-hi sm:text-3xl">

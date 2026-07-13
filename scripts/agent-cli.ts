@@ -8,9 +8,9 @@
 
 import "./_env";
 import { runAgent } from "../lib/agent/loop";
-import type { ToolCallTrace } from "../lib/agent/types";
+import type { AgentStreamEvent } from "../lib/agent/types";
 
-const B = "\x1b[1m", G = "\x1b[92m", C = "\x1b[96m", Y = "\x1b[93m", D = "\x1b[2m", X = "\x1b[0m";
+const B = "\x1b[1m", G = "\x1b[92m", C = "\x1b[96m", Y = "\x1b[93m", M = "\x1b[95m", D = "\x1b[2m", X = "\x1b[0m";
 
 function parseArgs(argv: string[]): { caseId: string; question: string } {
   let caseId = "C0001";
@@ -28,24 +28,38 @@ async function main() {
 
   console.log(`\n${B}NeuroVas Copilot — reasoning core${X}  ${D}(case ${caseId}, model ${process.env.ANTHROPIC_MODEL || "claude-opus-4-8"})${X}`);
   console.log(`${B}Q:${X} ${question}\n`);
-  console.log(`${D}--- tool trace ---${X}`);
+  console.log(`${D}--- reasoning + tool trace ---${X}`);
 
   const started = Date.now();
-  const seen = new Set<string>();
+  let thinkingOpen = false;
+  const endThinking = () => {
+    if (thinkingOpen) {
+      process.stdout.write(`${X}\n`);
+      thinkingOpen = false;
+    }
+  };
   const result = await runAgent(question, {
     caseId,
-    onTrace: (t: ToolCallTrace) => {
-      if (t.status === "running" && !seen.has(t.id)) {
-        seen.add(t.id);
-        const arg = t.name === "query_literature" ? ` ${D}"${(t.input as any).query}"${X}` : "";
-        process.stdout.write(`  ${C}→ ${t.name}${X}${arg}\n`);
-      } else if (t.status === "ok") {
-        process.stdout.write(`    ${G}✓${X} ${D}${t.resultSummary} (${t.durationMs}ms)${X}\n`);
-      } else if (t.status === "error") {
-        process.stdout.write(`    ${Y}✗ ${t.error}${X}\n`);
+    onEvent: (e: AgentStreamEvent) => {
+      if (e.type === "thinking") {
+        if (!thinkingOpen) {
+          process.stdout.write(`  ${M}think ${D}`);
+          thinkingOpen = true;
+        }
+        process.stdout.write(e.text);
+      } else if (e.type === "tool_call") {
+        endThinking();
+        const arg = e.name === "query_literature" ? ` ${D}"${(e.input as any).query}"${X}` : "";
+        process.stdout.write(`  ${C}→ ${e.name}${X}${arg}\n`);
+      } else if (e.type === "tool_result") {
+        endThinking();
+        if (e.status === "ok") process.stdout.write(`    ${G}✓${X} ${D}${e.summary} (${e.durationMs}ms)${X}\n`);
+        else process.stdout.write(`    ${Y}✗ ${e.error}${X}\n`);
       }
+      // e.type === "text" deltas are the final answer; printed in full below.
     },
   });
+  endThinking();
 
   console.log(`\n${D}--- answer ---${X}\n`);
   console.log(result.content);

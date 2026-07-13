@@ -3,30 +3,40 @@
 @tailwind utilities;
 
 :root {
-  /* NeuroVas palette — derived from the CodePen; --bg-deep overridden to pure black. */
-  --bg-deep: #000000;
-  --bg-panel: rgba(6, 4, 14, 0.8);
-  --vessel: #ff2bd1;
-  --aneurysm: #ff4d6d;
-  --accent: #00bbee;
-  --violet: #7f00ff;
-  --path: #ffee00;
+  /* NeuroVas — clinical dark workstation. Deep neutral graphite, one restrained
+     accent, hairline structure. The WSS ramp stays scientific. */
+  --bg-deep: #0a0c10; /* deep neutral graphite (not pure black) */
+  --bg-panel: #0e1117; /* panel surface */
+  --bg-elev: #141922; /* elevated cards / trace cards */
+  --hairline: rgba(148, 163, 184, 0.12);
+  --hairline-strong: rgba(148, 163, 184, 0.22);
+
+  --accent: #4db6c9; /* muted clinical teal — the single accent */
+  --accent-soft: rgba(77, 182, 201, 0.14);
+
+  --vessel: #b56b7e; /* muted anatomical rose (3D) */
+  --aneurysm: #e8663f; /* clinical coral — the lesion (3D) */
+  --brain: #8a90a8;
+  --path: #e0b23a; /* catheter gold, muted */
+  --violet: #7f7bd6;
+
   --wss-low: #2b6cff;
-  --wss-high: #ff3300;
-  --text-hi: #eaf6ff;
-  --text-lo: #7d8fa8;
+  --wss-high: #ff4d2e;
+
+  --text-hi: #e6edf3;
+  --text-lo: #8b98a9;
 
   --background: var(--bg-deep);
   --foreground: var(--text-hi);
 }
 
 * {
-  border-color: rgba(125, 143, 168, 0.14);
+  border-color: var(--hairline);
 }
 
 html,
 body {
-  background: #000000;
+  background: var(--bg-deep);
   color: var(--text-hi);
 }
 
@@ -44,20 +54,22 @@ body {
 }
 
 @layer components {
-  /* Glassmorphic panel — near-black with blur, per design system. */
+  /* Clinical panel — solid elevated surface, hairline border, no neon glow. */
   .glass {
     background: var(--bg-panel);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(125, 143, 168, 0.14);
+    border: 1px solid var(--hairline);
   }
-
+  /* An inset data/trace surface. */
+  .panel {
+    background: var(--bg-elev);
+    border: 1px solid var(--hairline);
+  }
   .glass-hover {
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    transition: border-color 0.18s ease, background-color 0.18s ease;
   }
   .glass-hover:hover {
-    border-color: rgba(0, 187, 238, 0.4);
-    box-shadow: 0 0 28px -10px var(--accent);
+    border-color: var(--hairline-strong);
+    background: var(--accent-soft);
   }
 }
 
@@ -65,29 +77,37 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  /* Section eyebrows / instrument labels — technical grotesk, tracked caps. */
   .display {
-    font-family: var(--font-orbitron), sans-serif;
-    letter-spacing: 0.04em;
+    font-family: var(--font-hero), sans-serif;
+    letter-spacing: 0.02em;
+  }
+  .label {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-lo);
   }
   /* WSS heatmap ramp — reused by the legend and the console. */
   .wss-ramp {
     background: linear-gradient(
       90deg,
       var(--wss-low) 0%,
-      #7f5bff 35%,
-      #ff5ccb 60%,
+      #6a5bd6 38%,
+      #d1655a 66%,
       var(--wss-high) 100%
     );
   }
 }
 
-/* Thin dark scrollbars so panels read as one clinical surface. */
+/* Thin scrollbars so panels read as one clinical surface. */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(125, 143, 168, 0.22);
+  background: rgba(148, 163, 184, 0.18);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-track {

@@ -1,0 +1,78 @@
+{
+  "caseId": "HERO_sub013",
+  "elements": [
+    {
+      "id": "aneurysm_dome",
+      "kind": "mesh",
+      "ref": "aneurysm_dome",
+      "label": "Aneurysm dome",
+      "anchor": [
+        -0.7292,
+        21.9688,
+        7.7667
+      ]
+    },
+    {
+      "id": "aneurysm_node",
+      "kind": "node",
+      "ref": "n63",
+      "label": "Aneurysm",
+      "anchor": [
+        -0.7292,
+        21.9688,
+        7.7667
+      ]
+    },
+    {
+      "id": "neck_region",
+      "kind": "region",
+      "ref": "neck",
+      "label": "Neck",
+      "anchor": [
+        -0.7292,
+        21.9688,
+        7.7667
+      ]
+    },
+    {
+      "id": "inlet",
+      "kind": "node",
+      "ref": "n27",
+      "label": "Vessel inlet L",
+      "anchor": [
+        -26.0625,
+        8.4688,
+        -23.9
+      ]
+    },
+    {
+      "id": "inlet_1",
+      "kind": "node",
+      "ref": "n106",
+      "label": "Vessel inlet R",
+      "anchor": [
+        26.9375,
+        10.4688,
+        -25.4
+      ]
+    },
+    {
+      "id": "bifurcation",
+      "kind": "node",
+      "ref": "n77",
+      "label": "Parent vessel",
+      "anchor": [
+        13.1875,
+        19.8855,
+        0.35
+      ]
+    }
+  ],
+  "wss": {
+    "minPa": 1.041,
+    "maxPa": 6.942,
+    "meanPa": 4.447,
+    "lowShearAreaPct": 20.3,
+    "highShearAreaPct": 35
+  }
+}
