@@ -63,7 +63,7 @@
   <label class="row"><input type="checkbox" id="t-cath" checked><span class="sw" style="background:#ffe34a"></span>Catheter route</label>
 
   <div class="sec">Node types</div>
-  <div class="row"><span class="sw" style="background:#38d96b"></span>entry &nbsp;<span class="sw" style="background:#ff3b3b"></span>aneurysm &nbsp;<span class="sw" style="background:#4aa3ff"></span>bifurcation &nbsp;<span class="sw" style="background:#6fa8dc"></span>endpoint</div>
+  <div class="row"><span class="sw" style="background:#38d96b"></span>entry &nbsp;<span class="sw" style="background:#ff3b3b"></span>aneurysm &nbsp;<span class="sw" style="background:#66b8ff"></span>bifurcation &nbsp;<span class="sw" style="background:#9ed6ff"></span>endpoint</div>
 
   <div class="sec">Morphology</div>
   <div id="morph">—</div>
@@ -119,8 +119,8 @@ function jet(t){ t = Math.max(0, Math.min(1, t));   // neon: cyan(low) -> indigo
   let i = 0; while (i < p.length-2 && t > p[i+1]) i++;
   const f = (t - p[i]) / ((p[i+1]-p[i]) || 1), a = s[i], b = s[i+1];
   return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; }
-function blood(t){ t = Math.max(0, Math.min(1, t));   // BLOOD: bright arterial red (slow) -> orange-hot (fast); pops inside the darker red vessel
-  return [0.92 + 0.08*t, 0.20 + 0.45*t, 0.16 + 0.12*t]; }
+function blood(t){ t = Math.max(0, Math.min(1, t));   // BLOOD: dark red (slow) -> deeper red (fast)
+  return [0.42 + 0.42*t, 0.03 + 0.09*t, 0.03 + 0.06*t]; }
 const SPRITE = (() => {                                // soft radial sprite -> particles glow & merge (fluid)
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const x = c.getContext('2d'), g = x.createRadialGradient(32,32,0, 32,32,32);
@@ -133,7 +133,7 @@ const bust = (u) => u + '?t=' + Date.now();   // artifacts change on disk; never
 async function fetchJSON(u){ const r = await fetch(bust(u), { headers: { 'ngrok-skip-browser-warning': 'true' } }); if(!r.ok) throw new Error(u); return r.json(); }
 function loadGLB(u){ return new Promise((res,rej)=> gltf.load(bust(u), g=>res(g), undefined, rej)); }
 
-const TYPE_COLOR = { entry:0x38d96b, aneurysm:0xff3b3b, bifurcation:0x4aa3ff, endpoint:0x6fa8dc };
+const TYPE_COLOR = { entry:0x38d96b, aneurysm:0xff3b3b, bifurcation:0x66b8ff, endpoint:0x9ed6ff };
 
 function frame(box){
   const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
@@ -277,8 +277,8 @@ async function loadCase(name){
       const key = n.type==='aneurysm' || n.type==='entry';
       const col = TYPE_COLOR[n.type] ?? 0xffffff;
       const m = new THREE.Mesh(sph, new THREE.MeshStandardMaterial({
-        color: col, emissive: key ? col : 0x000000, emissiveIntensity: key ? .5 : 0,
-        roughness:.5, metalness:.0 }));                     // only aneurysm/entry glow; junctions are small matte dots
+        color: col, emissive: col, emissiveIntensity: key ? .5 : .3,
+        roughness:.5, metalness:.0 }));                     // soft glow so light-blue nodes read through the translucent vessels
       m.position.set(n.pos[0], n.pos[1], n.pos[2]);
       const s = n.type==='aneurysm' ? 2.1 : n.type==='entry' ? 1.5 : n.type==='bifurcation' ? 0.7 : 0.45;
       m.scale.setScalar(s); groups.graph.add(m);
