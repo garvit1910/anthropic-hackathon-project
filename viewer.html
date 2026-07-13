@@ -57,7 +57,7 @@
     <span style="display:inline-block;width:96px;height:9px;border-radius:3px;background:linear-gradient(90deg,#3030ff,#00ffff,#00ff00,#ffff00,#ff2020);vertical-align:middle"></span>
     <span id="wssrange"></span></div>
   <label class="row"><input type="checkbox" id="t-graph" checked><span class="sw" style="background:#4aa3ff"></span>Centerline graph</label>
-  <label class="row"><input type="checkbox" id="t-stream"><span class="sw" style="background:#43d1ff"></span>Streamlines</label>
+  <label class="row"><input type="checkbox" id="t-stream" checked><span class="sw" style="background:linear-gradient(90deg,#3030ff,#00ffff,#00ff00,#ffff00,#ff2020)"></span>Hemodynamic flow ▸</label>
   <label class="row"><input type="checkbox" id="t-cath" checked><span class="sw" style="background:#ffe34a"></span>Catheter route</label>
 
   <div class="sec">Node types</div>
@@ -106,6 +106,12 @@ for (const n of ['vessel','aneurysm','graph','stream','cath']) {
 const clear = (g) => { while (g.children.length) { const c = g.children.pop();
   c.geometry?.dispose?.(); c.material?.dispose?.(); } };
 let aneurysmMeshes = [];            // for the WSS-heatmap material swap
+const clock = new THREE.Clock();
+let flow = { lines: [], geo: null, points: null, states: [], vmax: 1 };
+function jet(t){ t = Math.max(0, Math.min(1, t));   // 0..1 -> blue->cyan->green->yellow->red (matches WSS)
+  return [Math.max(0, Math.min(1, 1.5 - Math.abs(4*t - 3))),
+          Math.max(0, Math.min(1, 1.5 - Math.abs(4*t - 2))),
+          Math.max(0, Math.min(1, 1.5 - Math.abs(4*t - 1)))]; }
 
 const bust = (u) => u + '?t=' + Date.now();   // artifacts change on disk; never serve stale cache
 async function fetchJSON(u){ const r = await fetch(bust(u), { headers: { 'ngrok-skip-browser-warning': 'true' } }); if(!r.ok) throw new Error(u); return r.json(); }
@@ -125,6 +131,7 @@ function frame(box){
 async function loadCase(name){
   Object.values(groups).forEach(clear);
   aneurysmMeshes = [];
+  flow = { lines: [], geo: null, points: null, states: [], vmax: 1 };
   document.getElementById('morph').innerHTML = '—';
   setStatus('loading ' + name + '…');
   const base = `artifacts/case_${name}/`;
@@ -185,23 +192,37 @@ async function loadCase(name){
     if (!gotGeom) { box.expandByObject(groups.graph); gotGeom = true; }
   } catch(e){}
 
-  // streamlines colored by speed
+  // hemodynamic flow: faint guide lines + ANIMATED particles (speed = local flow, jet-colored like WSS)
   try {
     const s = await fetchJSON(base + 'streamlines.json');
     let vmax = 1e-6; s.streamlines.forEach(l => (l.speed||[]).forEach(v => vmax = Math.max(vmax,v)));
-    const pos = [], col = [], c = new THREE.Color();
+    flow.vmax = vmax;
+    const pos = [], col = [];
     for (const l of s.streamlines) {
-      for (let i=0;i<l.points.length-1;i++){
-        const a=l.points[i], b=l.points[i+1];
-        pos.push(a[0],a[1],a[2], b[0],b[1],b[2]);
-        const t=(l.speed?.[i]??0)/vmax; c.setHSL((1-t)*0.62, .9, .55);
-        col.push(c.r,c.g,c.b, c.r,c.g,c.b);
+      const P = l.points, spd = l.speed || P.map(()=>0), cum = [0];
+      for (let i=1;i<P.length;i++){
+        cum.push(cum[i-1] + Math.hypot(P[i][0]-P[i-1][0], P[i][1]-P[i-1][1], P[i][2]-P[i-1][2]));
+        const [r,g,b] = jet((spd[i-1]||0)/vmax);
+        pos.push(P[i-1][0],P[i-1][1],P[i-1][2], P[i][0],P[i][1],P[i][2]);
+        col.push(r,g,b, r,g,b);
       }
+      const line = { P, spd, cum, total: cum[cum.length-1] };
+      if (line.total <= 0) continue;
+      flow.lines.push(line);
+      for (let k=0;k<16;k++) flow.states.push({ li: flow.lines.length-1, s: Math.random()*line.total });
     }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(col,3));
-    groups.stream.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, opacity:.85 })));
+    const glg = new THREE.BufferGeometry();
+    glg.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+    glg.setAttribute('color', new THREE.Float32BufferAttribute(col,3));
+    groups.stream.add(new THREE.LineSegments(glg, new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, opacity:.16 })));
+
+    const N = flow.states.length;
+    flow.geo = new THREE.BufferGeometry();
+    flow.geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(3*N), 3));
+    flow.geo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(3*N), 3));
+    flow.points = new THREE.Points(flow.geo, new THREE.PointsMaterial({
+      size: 2.2, vertexColors: true, transparent: true, opacity: .95, depthWrite: false, sizeAttenuation: true }));
+    groups.stream.add(flow.points);
   } catch(e){}
 
   // catheter route(s): bright tube, shortest brightest
@@ -279,7 +300,31 @@ addEventListener('resize', () => {
   camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
-(function tick(){ requestAnimationFrame(tick); controls.update(); renderer.render(scene, camera); })();
+function animateFlow(){
+  if (!flow.points || !groups.stream.visible) return;
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = performance.now() * 0.001;
+  const pulse = 0.5 + 0.85 * Math.max(0, Math.sin(t * 2 * Math.PI * 1.1)); // ~1.1 Hz cardiac systolic surge
+  const SPEED = 55;                                        // mm/s at normalized speed 1
+  const posA = flow.geo.attributes.position.array, colA = flow.geo.attributes.color.array;
+  for (let i=0;i<flow.states.length;i++){
+    const st = flow.states[i], L = flow.lines[st.li];
+    let j = 1; while (j < L.cum.length-1 && L.cum[j] < st.s) j++;
+    const j0 = j-1, seg = Math.max(1e-6, L.cum[j]-L.cum[j0]);
+    const f = Math.max(0, Math.min(1, (st.s - L.cum[j0]) / seg));
+    const spd = L.spd[j0]*(1-f) + (L.spd[j]||0)*f;
+    const P0 = L.P[j0], P1 = L.P[j];
+    posA[3*i]   = P0[0]*(1-f)+P1[0]*f;
+    posA[3*i+1] = P0[1]*(1-f)+P1[1]*f;
+    posA[3*i+2] = P0[2]*(1-f)+P1[2]*f;
+    const c = jet(spd / flow.vmax); colA[3*i]=c[0]; colA[3*i+1]=c[1]; colA[3*i+2]=c[2];
+    st.s += (0.08 + spd) * SPEED * pulse * dt;             // advance; slow floor so it never stalls
+    if (st.s > L.total) st.s -= L.total;                  // loop
+  }
+  flow.geo.attributes.position.needsUpdate = true;
+  flow.geo.attributes.color.needsUpdate = true;
+}
+(function tick(){ requestAnimationFrame(tick); animateFlow(); controls.update(); renderer.render(scene, camera); })();
 
 loadCase('HERO_sub013');
 </script>
