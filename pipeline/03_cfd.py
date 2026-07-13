@@ -153,12 +153,13 @@ def analytic_hemodynamics(graph: dict, mu: float = BLOOD_VISCOSITY_PA_S,
 
 
 def _jet(t: np.ndarray) -> np.ndarray:
-    """Scalar field in [0,1] -> jet RGBA (blue low -> red high) as uint8."""
+    """Scalar field in [0,1] -> neon RGBA (cyan low -> purple -> hot pink high), matching the
+    viewer's flow colormap and the purple/pink theme."""
     t = np.clip(t, 0, 1)
-    r = np.clip(1.5 - np.abs(4 * t - 3), 0, 1)
-    g = np.clip(1.5 - np.abs(4 * t - 2), 0, 1)
-    b = np.clip(1.5 - np.abs(4 * t - 1), 0, 1)
-    return (np.column_stack([r, g, b, np.ones_like(t)]) * 255).astype(np.uint8)
+    p = np.array([0.0, 0.35, 0.7, 1.0])
+    stops = np.array([[0.0, 0.9, 1.0], [0.35, 0.25, 1.0], [0.75, 0.15, 1.0], [1.0, 0.18, 0.72]])
+    rgb = np.column_stack([np.interp(t, p, stops[:, k]) for k in range(3)])
+    return (np.column_stack([rgb, np.ones_like(t)]) * 255).astype(np.uint8)
 
 
 def bake_wss_heatmap(case_dir: str) -> tuple:
