@@ -61,6 +61,7 @@
   <div id="wsslegend" style="display:none; font-size:11px; margin:2px 0 4px 22px; color:#b7c2cd;">
     <span style="display:inline-block;width:96px;height:9px;border-radius:3px;background:linear-gradient(90deg,#00e5ff,#6a2cff,#b026ff,#ff2ec4);vertical-align:middle"></span>
     <span id="wssrange"></span></div>
+  <label class="row"><input type="checkbox" id="t-wsspt" checked><span class="sw" style="background:radial-gradient(circle,#ff5a3c,#00e5ff)"></span>WSS hotspots ◎</label>
   <label class="row"><input type="checkbox" id="t-graph" checked><span class="sw" style="background:#b26bff"></span>Centerline graph</label>
   <label class="row"><input type="checkbox" id="t-stream" checked><span class="sw" style="background:linear-gradient(90deg,#8b0000,#ff2020,#ff7a20)"></span>Hemodynamic flow ▸</label>
   <label class="row"><input type="checkbox" id="t-cath" checked><span class="sw" style="background:#ffe34a"></span>Catheter route</label>
@@ -75,6 +76,7 @@
   <button class="mini" id="spinBtn">Toggle auto-rotate</button>
 </div>
 <div id="hint">drag to orbit · scroll to zoom · right-drag to pan</div>
+<div id="wsslabels" style="position:fixed; inset:0; pointer-events:none; z-index:9;"></div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -107,9 +109,11 @@ controls.enableDamping = true; controls.dampingFactor = .08;
 const gltf = new GLTFLoader();
 gltf.setRequestHeader({ 'ngrok-skip-browser-warning': 'true' });   // free-ngrok interstitial bypass
 const groups = {};                 // layer name -> THREE.Group
-for (const n of ['brain','vessel','aneurysm','graph','stream','cath']) {
+for (const n of ['brain','vessel','aneurysm','graph','stream','cath','wss']) {
   groups[n] = new THREE.Group(); scene.add(groups[n]);
 }
+let hotspots = [];                 // WSS peak/low-shear markers with tracked HTML labels
+let aneurysmGeoWorld = null;       // {pos: Float32Array world-mm, count}
 const clear = (g) => { while (g.children.length) { const c = g.children.pop();
   c.geometry?.dispose?.(); c.material?.dispose?.(); } };
 let aneurysmMeshes = [];            // for the WSS-heatmap material swap
@@ -149,6 +153,7 @@ async function loadCase(name){
   Object.values(groups).forEach(clear);
   aneurysmMeshes = [];
   flow = { lines: [], geo: null, points: null, states: [], vmax: 1 };
+  hotspots.forEach(h => h.el && h.el.remove()); hotspots = []; aneurysmGeoWorld = null;
   document.getElementById('morph').innerHTML = '—';
   setStatus('loading ' + name + '…');
   const base = `artifacts/case_${name}/`;
@@ -185,6 +190,7 @@ async function loadCase(name){
     const g = await loadGLB(base + 'aneurysm.glb');
     g.scene.traverse(o => { if (o.isMesh) {
       o.geometry.computeVertexNormals();
+      aneurysmGeoWorld = { pos: o.geometry.attributes.position.array, count: o.geometry.attributes.position.count };
       const mesh = o.clone();
       mesh.userData.solid = new THREE.MeshStandardMaterial({ color:0xff2ec4, emissive:0xff2ec4,
         emissiveIntensity:.6, roughness:.25, metalness:.05, side:THREE.DoubleSide });  // neon pink sac
@@ -195,10 +201,33 @@ async function loadCase(name){
     box.expandByObject(groups.aneurysm); gotGeom = true;
   } catch(e){}
 
-  // per-vertex WSS heatmap availability -> legend range
+  // per-vertex WSS -> legend range + peak(neck)/low-shear(dome) hotspot markers with tracked labels
   try {
     const w = await fetchJSON(base + 'wss.json');
     document.getElementById('wssrange').textContent = `${w.min_wss_pa}–${w.peak_wss_pa} Pa · ${w._tier}`;
+    const wss = w.per_vertex_wss_pa;
+    if (aneurysmGeoWorld && wss && wss.length === aneurysmGeoWorld.count) {
+      const P = aneurysmGeoWorld.pos, hex = c => '#' + c.toString(16).padStart(6,'0');
+      let pi = 0; for (let i=1;i<wss.length;i++) if (wss[i] > wss[pi]) pi = i;   // peak = neck/inflow
+      const thr = 0.4 * w.peak_wss_pa; let cx=0,cy=0,cz=0,cn=0;                  // low-shear = dome
+      for (let i=0;i<wss.length;i++) if (wss[i] < thr){ cx+=P[3*i]; cy+=P[3*i+1]; cz+=P[3*i+2]; cn++; }
+      const specs = [{ p:new THREE.Vector3(P[3*pi],P[3*pi+1],P[3*pi+2]), color:0xff5a3c,
+        html:`<b>Peak WSS</b> ${w.peak_wss_pa} Pa<br><span style="opacity:.65">neck · inflow jet</span>` }];
+      if (cn) specs.push({ p:new THREE.Vector3(cx/cn,cy/cn,cz/cn), color:0x00e5ff,
+        html:`<b>Low-shear</b> ~${Math.round(100*cn/wss.length)}% of sac<br><span style="opacity:.65">dome · recirculation</span>` });
+      specs.forEach((s, idx) => {
+        const marker = new THREE.Mesh(new THREE.SphereGeometry(0.7,14,14),
+          new THREE.MeshStandardMaterial({ color:s.color, emissive:s.color, emissiveIntensity:1.2 }));
+        marker.position.copy(s.p); groups.wss.add(marker);
+        const el = document.createElement('div');
+        el.style.cssText = `position:absolute; transform:translate(-50%,${-150 - idx*135}%); padding:5px 9px; `
+          + 'font:11px/1.35 ui-sans-serif; color:#fff; white-space:nowrap; border-radius:8px; '
+          + `background:rgba(22,6,40,.9); border:1px solid ${hex(s.color)}cc; box-shadow:0 0 14px ${hex(s.color)}80;`;
+        el.innerHTML = s.html;
+        document.getElementById('wsslabels').appendChild(el);
+        hotspots.push({ p: s.p.clone(), el });
+      });
+    }
   } catch(e){ document.getElementById('wssrange').textContent = ''; }
 
   // centerline graph: node spheres + edge polylines
@@ -252,7 +281,7 @@ async function loadCase(name){
         const line = { P, spd, cum, total: cum[cum.length-1] };
         if (line.total <= 0) continue;
         flow.lines.push(line);
-        const dens = Math.max(3, Math.round(line.total / 2.5));         // ~1 droplet / 2.5mm
+        const dens = Math.max(3, Math.round(line.total / 2.5 * (0.55 + sp)));   // denser where WSS higher (narrow = high shear)
         for (let k=0;k<dens;k++) flow.states.push({ li: flow.lines.length-1, s: Math.random()*line.total });
       }
     }
@@ -326,8 +355,10 @@ function applyToggles(){
   groups.graph.visible    = document.getElementById('t-graph').checked;
   groups.stream.visible   = document.getElementById('t-stream').checked;
   groups.cath.visible     = document.getElementById('t-cath').checked;
+  groups.wss.visible      = document.getElementById('t-wsspt').checked;
+  hotspots.forEach(h => { h.el.style.display = groups.wss.visible ? 'block' : 'none'; });
 }
-['t-brain','t-vessel','t-aneurysm','t-graph','t-stream','t-cath'].forEach(id =>
+['t-brain','t-vessel','t-aneurysm','t-graph','t-stream','t-cath','t-wsspt'].forEach(id =>
   document.getElementById(id).addEventListener('change', applyToggles));
 
 function applyWss(){
@@ -374,7 +405,19 @@ function animateFlow(){
   flow.geo.attributes.position.needsUpdate = true;
   flow.geo.attributes.color.needsUpdate = true;
 }
-(function tick(){ requestAnimationFrame(tick); animateFlow(); controls.update(); renderer.render(scene, camera); })();
+const _v = new THREE.Vector3();
+function updateLabels(){
+  if (!groups.wss.visible || !hotspots.length) return;
+  for (const hs of hotspots){
+    _v.copy(hs.p).project(camera);
+    const behind = _v.z > 1;
+    hs.el.style.display = behind ? 'none' : 'block';
+    if (behind) continue;
+    hs.el.style.left = ((_v.x*0.5+0.5)*innerWidth) + 'px';
+    hs.el.style.top  = ((-_v.y*0.5+0.5)*innerHeight) + 'px';
+  }
+}
+(function tick(){ requestAnimationFrame(tick); animateFlow(); controls.update(); renderer.render(scene, camera); updateLabels(); })();
 
 loadCase('HERO_sub013');
 </script>

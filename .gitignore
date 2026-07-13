@@ -35,3 +35,4 @@ cmha/
 
 # Lausanne TOF-MRA scans (OpenNeuro ds003949) — git-ignored
 lausanne/
+public/
