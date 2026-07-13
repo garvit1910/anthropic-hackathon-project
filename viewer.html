@@ -154,11 +154,50 @@ async function loadCase(name){
   const base = `artifacts/case_${name}/`;
   let box = new THREE.Box3(), gotGeom = false;
 
+  // occupancy grid of the vessel surface (world mm) -> cull graph nodes/edges/flow that
+  // stray outside the actual mesh (the hero graph was built from a denser segmentation than
+  // the cleaned vessel_tree.glb, so extra branches hung in empty space and flow followed them)
+  const vgrid = new Map(), VCELL = 6.0;
+  const vkey = (x,y,z) => Math.floor(x/VCELL)+'|'+Math.floor(y/VCELL)+'|'+Math.floor(z/VCELL);
+  const nearVessel = (x,y,z,tol) => {
+    if (!vgrid.size) return true;                 // no mesh (graph-only case) -> don't cull
+    const t2 = tol*tol, cx=Math.floor(x/VCELL), cy=Math.floor(y/VCELL), cz=Math.floor(z/VCELL);
+    for (let dx=-1;dx<=1;dx++) for (let dy=-1;dy<=1;dy++) for (let dz=-1;dz<=1;dz++){
+      const arr = vgrid.get((cx+dx)+'|'+(cy+dy)+'|'+(cz+dz)); if (!arr) continue;
+      for (const p of arr){ const d=(p[0]-x)**2+(p[1]-y)**2+(p[2]-z)**2; if (d<=t2) return true; }
+    }
+    return false;
+  };
+  const edgeNear = e => { const P=e.polyline||[]; if (P.length<2) return false;
+    const tol=(e.mean_radius_mm||1)+1.2; let ok=0;
+    for (const p of P) if (nearVessel(p[0],p[1],p[2],tol)) ok++;
+    return ok >= P.length*0.6; };
+  // surroundedness test: a node INSIDE a tube has surface all around it (dir-vectors to nearby
+  // surface cancel -> mean magnitude ~0); a node dangling past/outside a branch has surface on
+  // one side only (mean ~1) or none. Cleanly separates real centerline nodes from strays.
+  let keptIds = new Set();
+  const nodeInside = (x,y,z,radius) => {
+    if (!vgrid.size) return true;
+    const tol=(radius||1)+2.0, t2=tol*tol;
+    const cx=Math.floor(x/VCELL), cy=Math.floor(y/VCELL), cz=Math.floor(z/VCELL);
+    let sx=0,sy=0,sz=0,cnt=0;
+    for (let dx=-1;dx<=1;dx++) for (let dy=-1;dy<=1;dy++) for (let dz=-1;dz<=1;dz++){
+      const arr=vgrid.get((cx+dx)+'|'+(cy+dy)+'|'+(cz+dz)); if(!arr) continue;
+      for (const p of arr){ const ax=p[0]-x,ay=p[1]-y,az=p[2]-z, d2=ax*ax+ay*ay+az*az;
+        if(d2<=t2 && d2>1e-6){ const d=Math.sqrt(d2); sx+=ax/d; sy+=ay/d; sz+=az/d; cnt++; } }
+    }
+    return cnt>=6 && Math.hypot(sx,sy,sz)/cnt < 0.70;
+  };
+
   // vessel mesh (translucent so interior structures show)
   try {
     const g = await loadGLB(base + 'vessel_tree.glb');
+    g.scene.updateMatrixWorld(true);
     g.scene.traverse(o => { if (o.isMesh) {
       o.geometry.computeVertexNormals();          // trimesh GLB has no normals -> lighting=black
+      const pa = o.geometry.attributes.position, _v = new THREE.Vector3();
+      for (let i=0;i<pa.count;i++){ _v.fromBufferAttribute(pa,i).applyMatrix4(o.matrixWorld);
+        const k=vkey(_v.x,_v.y,_v.z); let a=vgrid.get(k); if(!a){a=[];vgrid.set(k,a);} a.push([_v.x,_v.y,_v.z]); }
       o.material = new THREE.MeshStandardMaterial({ color:0xe0483a, emissive:0x3a0e08,
         emissiveIntensity:.4, transparent:true, opacity:.55, roughness:.45, metalness:.05,
         side:THREE.DoubleSide });   // OG deep-red vessels — a touch more vibrant/visible on black
@@ -229,15 +268,21 @@ async function loadCase(name){
   let graph = null;
   try {
     graph = await fetchJSON(base + 'graph.json');
+    keptIds = new Set();                            // graph nodes that actually sit inside the vessel mesh
+    for (const n of graph.nodes)
+      if (n.type==='aneurysm' || n.type==='entry' || nodeInside(n.pos[0],n.pos[1],n.pos[2],n.radius)) keptIds.add(n.id);
+    const edgeOk = e => keptIds.has(e.source) && keptIds.has(e.target) && edgeNear(e);
     const edgeMat = new THREE.LineBasicMaterial({ color:0x5b6a7d, transparent:true, opacity:.6 });
     for (const e of graph.edges) {
+      if (!edgeOk(e)) continue;                     // skip edges that leave the vessel mesh
       const pts = e.polyline.map(p => new THREE.Vector3(p[0],p[1],p[2]));
       groups.graph.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), edgeMat));
     }
     const sph = new THREE.SphereGeometry(1, 18, 18);
     for (const n of graph.nodes) {
-      const col = TYPE_COLOR[n.type] ?? 0xffffff;
+      if (!keptIds.has(n.id)) continue;             // drop stray nodes
       const key = n.type==='aneurysm' || n.type==='entry';
+      const col = TYPE_COLOR[n.type] ?? 0xffffff;
       const m = new THREE.Mesh(sph, new THREE.MeshStandardMaterial({
         color: col, emissive: key ? col : 0x000000, emissiveIntensity: key ? .5 : 0,
         roughness:.5, metalness:.0 }));                     // only aneurysm/entry glow; junctions are small matte dots
@@ -272,6 +317,7 @@ async function loadCase(name){
       const rmax = Math.max(1e-3, ...graph.edges.map(e => e.mean_radius_mm || 1));
       for (const e of graph.edges) {
         const P = e.polyline; if (!P || P.length < 2) continue;
+        if (!(keptIds.has(e.source) && keptIds.has(e.target) && edgeNear(e))) continue;   // no flow through edges that leave the mesh
         const sp = 0.25 + 0.7 * (1 - (e.mean_radius_mm || 1) / rmax);   // narrow vessel = faster (proxy)
         const spd = P.map(() => sp), cum = [0];
         for (let i=1;i<P.length;i++) cum.push(cum[i-1] + Math.hypot(P[i][0]-P[i-1][0], P[i][1]-P[i-1][1], P[i][2]-P[i-1][2]));
