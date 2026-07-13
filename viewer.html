@@ -76,7 +76,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const CASES = ['C0001', 'LAUSANNE_sub000', 'CMHA_AHMU1218001'];
+const CASES = ['HERO_sub013', 'C0001', 'CMHA_AHMU1218001', 'LAUSANNE_sub000'];
 const statusEl = document.getElementById('status');
 const setStatus = (t) => statusEl.textContent = t;
 
@@ -274,7 +274,7 @@ addEventListener('resize', () => {
 });
 (function tick(){ requestAnimationFrame(tick); controls.update(); renderer.render(scene, camera); })();
 
-loadCase('C0001');
+loadCase('HERO_sub013');
 </script>
 </body>
 </html>
