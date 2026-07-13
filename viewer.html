@@ -199,8 +199,8 @@ async function loadCase(name){
       for (let i=0;i<pa.count;i++){ _v.fromBufferAttribute(pa,i).applyMatrix4(o.matrixWorld);
         const k=vkey(_v.x,_v.y,_v.z); let a=vgrid.get(k); if(!a){a=[];vgrid.set(k,a);} a.push([_v.x,_v.y,_v.z]); }
       o.material = new THREE.MeshStandardMaterial({ color:0xe0483a, emissive:0x3a0e08,
-        emissiveIntensity:.4, transparent:true, opacity:.55, roughness:.45, metalness:.05,
-        side:THREE.DoubleSide });   // OG deep-red vessels — a touch more vibrant/visible on black
+        emissiveIntensity:.35, transparent:true, opacity:.34, roughness:.5, metalness:.05,
+        side:THREE.DoubleSide, depthWrite:false });   // translucent deep-red vessels: flow reads through the walls
       groups.vessel.add(o.clone());
     }});
     box.expandByObject(groups.vessel); gotGeom = true;
@@ -249,17 +249,10 @@ async function loadCase(name){
         html:`<b>Peak WSS</b> ${w.peak_wss_pa} Pa<br><span style="opacity:.65">neck · inflow jet</span>` }];
       if (cn) specs.push({ p:new THREE.Vector3(cx/cn,cy/cn,cz/cn), color:0x4aa3ff,
         html:`<b>Low-shear</b> ~${Math.round(100*cn/wss.length)}% of sac<br><span style="opacity:.65">dome · recirculation</span>` });
-      specs.forEach((s, idx) => {
+      specs.forEach((s) => {                         // marker dots only — no floating text tags
         const marker = new THREE.Mesh(new THREE.SphereGeometry(0.7,14,14),
           new THREE.MeshStandardMaterial({ color:s.color, emissive:s.color, emissiveIntensity:1.2 }));
         marker.position.copy(s.p); groups.wss.add(marker);
-        const el = document.createElement('div');
-        el.style.cssText = `position:absolute; transform:translate(-50%,${-150 - idx*135}%); padding:5px 9px; `
-          + 'font:11px/1.35 ui-sans-serif; color:#e8edf2; white-space:nowrap; border-radius:8px; '
-          + `background:rgba(13,17,23,.92); border:1px solid ${hex(s.color)}cc; box-shadow:0 0 10px ${hex(s.color)}55;`;
-        el.innerHTML = s.html;
-        document.getElementById('wsslabels').appendChild(el);
-        hotspots.push({ p: s.p.clone(), el });
       });
     }
   } catch(e){ document.getElementById('wssrange').textContent = ''; }
