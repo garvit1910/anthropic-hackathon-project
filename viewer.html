@@ -229,7 +229,9 @@ async function loadCase(name){
       <span class="k">peak WSS</span> <b>${h.peak_wss_pa}</b> Pa · <span class="k">OSI</span> <b>${h.osi_max}</b><br>
       <span class="k">age/sex</span> <b>${cl.patient_age}/${cl.patient_sex}</b>${cl.phase_score!=null?` · <span class="k">PHASE</span> <b>${cl.phase_score}</b>`:''}
       ${flag}`;
-  } catch(e){ document.getElementById('morph').innerHTML = '<span class="k">no morphology.json for this case</span>'; }
+  } catch(e){ document.getElementById('morph').innerHTML =
+      '<span class="k">TOF-MRA reconstruction showcase — whole-brain vessel tree from a raw scan. '
+      + 'No aneurysm case (no morphology / graph by design).</span>'; }
 
   if (gotGeom && !box.isEmpty()) frame(box);
   applyToggles();
