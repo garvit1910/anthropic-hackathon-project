@@ -229,9 +229,15 @@ async function loadCase(name){
       <span class="k">peak WSS</span> <b>${h.peak_wss_pa}</b> Pa · <span class="k">OSI</span> <b>${h.osi_max}</b><br>
       <span class="k">age/sex</span> <b>${cl.patient_age}/${cl.patient_sex}</b>${cl.phase_score!=null?` · <span class="k">PHASE</span> <b>${cl.phase_score}</b>`:''}
       ${flag}`;
-  } catch(e){ document.getElementById('morph').innerHTML =
-      '<span class="k">TOF-MRA reconstruction showcase — whole-brain vessel tree from a raw scan. '
-      + 'No aneurysm case (no morphology / graph by design).</span>'; }
+  } catch(e){
+    const el = document.getElementById('morph');
+    if (!gotGeom) el.innerHTML = '<span class="flag">⚠ artifacts didn\'t load — run '
+        + '<code>python -m http.server 8137</code> in the repo, then open '
+        + '<code>http://localhost:8137/viewer.html</code> (the GLB/JSON files must be served).</span>';
+    else if (name.startsWith('LAUSANNE')) el.innerHTML = '<span class="k">TOF-MRA reconstruction '
+        + 'showcase — whole-brain vessel tree from a raw scan. No aneurysm case by design.</span>';
+    else el.innerHTML = '<span class="k">no morphology.json for this case</span>';
+  }
 
   if (gotGeom && !box.isEmpty()) frame(box);
   applyToggles();
