@@ -1,0 +1,155 @@
+{
+  "corpus_file": "rupture_risk_scores",
+  "description": "Clinical rupture-risk and growth-risk scoring systems (PHASES, ELAPSS, UIATS, UCAS score) and the validation studies that challenge them.",
+  "chunks": [
+    {
+      "text": "The PHASES score (Population, Hypertension, Age, Size of aneurysm, Earlier subarachnoid haemorrhage from another aneurysm, Site of aneurysm) is a clinical prediction tool for the 5-year absolute rupture risk of an incidentally discovered unruptured intracranial aneurysm. It was derived from a pooled individual-patient analysis of six prospective cohort studies comprising 8,382 patients with 10,272 unruptured aneurysms, followed for 29,166 person-years. Across that pooled cohort the observed mean 1-year rupture risk was 1.4% (95% CI 1.1-1.6) and the 5-year risk was 3.4% (95% CI 2.9-4.0). Six predictors carried the largest amount of prognostic information: age, hypertension, prior SAH, aneurysm size, aneurysm location, and geographic region. PHASES is the most widely cited baseline against which any new rupture-risk claim should be positioned.",
+      "meta": {
+        "source": "Greving et al. 2014 - PHASES score derivation (Lancet Neurology)",
+        "citation": "Greving JP, Wermer MJH, Brown RD Jr, et al. Lancet Neurol. 2014;13(1):59-66.",
+        "year": 2014,
+        "topic": "size",
+        "subtopic": "risk_score",
+        "direction": "mixed",
+        "contested": false,
+        "evidence": "pooled_cohort",
+        "n": 8382,
+        "applies_to": [
+          "unruptured",
+          "incidental"
+        ]
+      }
+    },
+    {
+      "text": "PHASES stratifies rupture risk across a very wide absolute range, which is the practical reason a single number like aneurysm diameter is insufficient on its own. In North American and non-Finnish European populations, the estimated 5-year absolute rupture risk ranged from 0.25% for an individual under 70 years old with no vascular risk factors and a small (<7 mm) internal carotid artery aneurysm, up to more than 15% for a patient aged 70 or older with hypertension, a history of subarachnoid haemorrhage, and a giant (>20 mm) posterior circulation aneurysm. Population matters substantially: Finnish patients showed a 3.6-fold increased rupture risk and Japanese patients a 2.8-fold increased risk relative to the North American / other-European reference. A small ICA aneurysm in a young normotensive patient sits at the bottom of this range.",
+      "meta": {
+        "source": "Greving et al. 2014 - PHASES absolute risk range",
+        "citation": "Greving JP, et al. Lancet Neurol. 2014;13(1):59-66.",
+        "year": 2014,
+        "topic": "size",
+        "subtopic": "absolute_risk",
+        "direction": "mixed",
+        "contested": false,
+        "evidence": "pooled_cohort",
+        "applies_to": [
+          "unruptured",
+          "ICA",
+          "posterior_circulation"
+        ]
+      }
+    },
+    {
+      "text": "PHASES weights aneurysm location into three bands: middle cerebral artery, internal carotid artery, and 'other' (anterior cerebral arteries, communicating arteries, and the posterior circulation). Size is banded into four groups: <7 mm, 7-9.9 mm, 10-19.9 mm, and >=20 mm. The <7 mm band is the lowest size stratum and receives no size-driven risk elevation. This is why a sub-7 mm aneurysm frequently produces a low PHASES score even when other morphological features look concerning: the score has no term for aspect ratio, size ratio, wall shear stress, irregularity, or daughter sac. Morphological and hemodynamic risk factors are, by construction, invisible to PHASES.",
+      "meta": {
+        "source": "PHASES scoring bands - size and location strata",
+        "citation": "Greving JP, et al. Lancet Neurol. 2014;13(1):59-66.",
+        "year": 2014,
+        "topic": "size",
+        "subtopic": "score_limitations",
+        "direction": "mixed",
+        "contested": false,
+        "evidence": "pooled_cohort",
+        "applies_to": [
+          "ICA",
+          "MCA",
+          "AComm",
+          "PComm"
+        ]
+      }
+    },
+    {
+      "text": "The PHASES score also predicts aneurysm growth, not only rupture. In a multicenter cohort of 557 patients with 734 unruptured aneurysms followed with CTA or MRA, 89 aneurysms (12%) in 87 patients grew over a median follow-up of 2.7 patient-years. Each one-point increase in baseline PHASES score corresponded to a hazard ratio for aneurysm growth of 1.32 (95% CI 1.22-1.43). Growth is clinically important because documented growth on serial imaging is itself an accepted indication to escalate management, independent of the baseline score.",
+      "meta": {
+        "source": "Backes et al. 2015 - PHASES for aneurysm growth (Stroke)",
+        "citation": "Backes D, Vergouwen MDI, Groenestege AT, et al. Stroke. 2015;46(5):1221-6.",
+        "year": 2015,
+        "topic": "size",
+        "subtopic": "growth",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "cohort",
+        "n": 557,
+        "applies_to": [
+          "unruptured",
+          "surveillance"
+        ]
+      }
+    },
+    {
+      "text": "The ELAPSS score (Earlier SAH, Location, Age, Population, Size, Shape) predicts 3-year and 5-year absolute risk of aneurysm GROWTH rather than rupture, on the premise that growth is a surrogate marker of instability. It ranges 0-40 points, with size weighted most heavily (aneurysms >=10 mm contribute 22 points). ELAPSS is the standard companion to PHASES: PHASES for rupture, ELAPSS for growth, in surveillance decisions. Notably, ELAPSS includes an explicit SHAPE term (regular vs irregular), which PHASES does not.",
+      "meta": {
+        "source": "Backes et al. 2017 - ELAPSS score (Neurology)",
+        "citation": "Backes D, Rinkel GJE, Greving JP, et al. Neurology. 2017;88(17):1600-1606.",
+        "year": 2017,
+        "topic": "size",
+        "subtopic": "growth_score",
+        "direction": "mixed",
+        "contested": false,
+        "evidence": "pooled_cohort",
+        "applies_to": [
+          "unruptured",
+          "surveillance"
+        ]
+      }
+    },
+    {
+      "text": "CONTESTED / CAUTIONARY: The established rupture-risk scores underperform when validated against aneurysms that actually ruptured. In a retrospective single-center analysis of 180 aneurysms (103 ruptured, 77 unruptured), PHASES, ELAPSS and UIATS were each computed as if the ruptured lesions had been found incidentally. PHASES did not discriminate (median 1.6% in ruptured vs 1.6% in unruptured). ELAPSS did not discriminate (5-year growth risk 22.6% vs 20.0%). UIATS actually favored CONSERVATIVE management more often in the aneurysms that went on to rupture (56.3% vs 39.0%, p=0.046). Age was the only independent predictor of rupture (OR 1.05/year). The authors conclude that most ruptured aneurysms would not have been recommended for treatment by these scores. This is a direct argument that a low PHASES score is NOT reassurance, and that additional patient-specific information (morphology, hemodynamics) is needed.",
+      "meta": {
+        "source": "Risk-score validation against ruptured aneurysms (Copernicus Memorial Hospital cohort)",
+        "citation": "Retrospective single-center aSAH cohort, 2022-2024, n=180.",
+        "year": 2025,
+        "topic": "size",
+        "subtopic": "score_failure",
+        "direction": "mixed",
+        "contested": true,
+        "evidence": "retrospective_cohort",
+        "n": 180,
+        "applies_to": [
+          "unruptured",
+          "ruptured",
+          "score_critique"
+        ]
+      }
+    },
+    {
+      "text": "CONTESTED: ELAPSS has a documented paradox in its own domain. A prospective study of 215 small aneurysms (3-5 mm) found no significant difference in ELAPSS score between aneurysms that stayed stable and those that grew, suggesting the score is poorly calibrated exactly where clinical uncertainty is highest. Separately, many aneurysms that ultimately rupture carry LOW ELAPSS scores, meaning growth prediction and rupture prediction do not reliably coincide. For small aneurysms specifically, computational-fluid-dynamics-derived hemodynamic parameters have been proposed as having superior predictive value to the clinical score. Any judgment about a small aneurysm should treat a reassuring ELAPSS/PHASES pair as weak evidence, not strong evidence.",
+      "meta": {
+        "source": "ELAPSS limitations in small aneurysms",
+        "citation": "Tsui 2025 (n=215 small aneurysms); Hilditch 2021.",
+        "year": 2025,
+        "topic": "size",
+        "subtopic": "score_failure",
+        "direction": "mixed",
+        "contested": true,
+        "evidence": "prospective_cohort",
+        "n": 215,
+        "applies_to": [
+          "small_aneurysm",
+          "under_5mm",
+          "score_critique"
+        ]
+      }
+    },
+    {
+      "text": "The UCAS Japan score offers a different, complementary weighting to PHASES and explicitly includes daughter-sac presence, which PHASES omits. It scores age (>=70: 1), sex (female: 1), hypertension (present: 1), size (3-<7 mm: 0; 7-<10 mm: 2; 10-<20 mm: 5; >=20 mm: 8), location (ICA not ICPC: 0; ACA or VA: 1; MCA or BA: 2; AComm or ICPC: 3), and daughter sac (present: 1). Total maps to four 3-year rupture bands: 0-3 points = 0.2-0.9%; 4-5 points = 1.4-2.3%; 6-8 points = 3.7-7.6%. The location weighting here disagrees with PHASES in an instructive way: UCAS treats MCA as HIGHER risk than plain ICA, whereas PHASES gives MCA and ICA separate but comparable low-to-moderate weights.",
+      "meta": {
+        "source": "Tominari et al. - UCAS Japan score",
+        "citation": "Tominari S, et al., derived from UCAS Japan (Morita A, et al. N Engl J Med. 2012;366:2474-2482).",
+        "year": 2015,
+        "topic": "location",
+        "subtopic": "risk_score",
+        "direction": "mixed",
+        "contested": false,
+        "evidence": "prospective_cohort",
+        "n": 5720,
+        "applies_to": [
+          "unruptured",
+          "ICA",
+          "MCA",
+          "AComm",
+          "PComm"
+        ]
+      }
+    }
+  ]
+}
