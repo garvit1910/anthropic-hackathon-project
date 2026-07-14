@@ -1,0 +1,106 @@
+{
+  "corpus_file": "morphology",
+  "description": "Shape-based rupture predictors: aspect ratio, size ratio, undulation/nonsphericity, flow angle, irregularity. Aspect ratio is genuinely contested; size ratio is more robustly supported.",
+  "chunks": [
+    {
+      "text": "ASPECT RATIO (AR) is defined as aneurysm height divided by neck width. Ujiie and colleagues introduced it as a rupture-risk index on hemodynamic grounds: in microsurgically-created aneurysm models with Doppler velocimetry, inflow entered the sac only during systole and was strongly governed by neck size and position. A narrow neck relative to a tall dome isolates the sac from the parent-vessel flow, producing sluggish intra-aneurysmal circulation and prolonged residence time near the dome wall. This is the mechanistic rationale linking high AR to wall vulnerability: high AR is a proxy for flow stagnation, not an independent structural weakness.",
+      "meta": {
+        "source": "Ujiie et al. 1999 - aspect ratio and intra-aneurysmal hemodynamics",
+        "citation": "Ujiie H, Tachibana H, Hiramatsu O, et al. Neurosurgery. 1999;45:119-29.",
+        "year": 1999,
+        "topic": "aspect_ratio",
+        "subtopic": "mechanism",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "experimental",
+        "applies_to": ["aspect_ratio", "neck_width", "flow_stagnation"]
+      }
+    },
+    {
+      "text": "CONTESTED - IS ASPECT RATIO ACTUALLY PREDICTIVE? The aspect-ratio literature is genuinely split, and this is one of the clearest live disagreements in aneurysm morphology. Ujiie et al. (2001) argued affirmatively in 'Is the aspect ratio a reliable index for predicting the rupture of a saccular aneurysm?' (Neurosurgery 48:495-502). Nader-Sepahi et al. (2004) published the direct counter-question, 'Is aspect ratio a reliable predictor of intracranial aneurysm rupture?' (Neurosurgery 54:1343-1347), and reached a considerably more skeptical conclusion. Subsequent multivariate work found that when AR is entered alongside SIZE RATIO and other parent-vessel-aware parameters, size ratio tends to survive as the stronger independent predictor while AR weakens. AR should therefore be weighted as suggestive and mechanistically plausible rather than as a decisive discriminator.",
+      "meta": {
+        "source": "Aspect ratio controversy - Ujiie 2001 vs Nader-Sepahi 2004",
+        "citation": "Ujiie H, Tamano Y, Sasaki K, Hori T. Neurosurgery. 2001;48:495-502. / Nader-Sepahi A, Casimiro M, Sen J, Kitchen ND. Neurosurgery. 2004;54:1343-1347.",
+        "year": 2004,
+        "topic": "aspect_ratio",
+        "subtopic": "predictive_validity",
+        "direction": "mixed",
+        "contested": true,
+        "evidence": "cohort",
+        "applies_to": ["aspect_ratio", "reasoning_caution"]
+      }
+    },
+    {
+      "text": "SIZE RATIO (SR) is aneurysm size divided by parent-vessel diameter, and it is the morphological parameter with the most consistent independent support. In Dhar et al.'s analysis of 45 saccular aneurysms (25 unruptured, 20 ruptured), significant differences between ruptured and unruptured groups were found for size ratio, undulation index, nonsphericity index, ellipticity index, aneurysm angle, and aspect ratio. But in LOGISTIC REGRESSION, only size ratio (OR 1.41, 95% CI 1.03-1.92) and undulation index (OR 1.51, 95% CI 1.08-2.11) held the strongest INDEPENDENT correlation with rupture. On ROC analysis, size ratio achieved AUC 0.83 and aneurysm angle AUC 0.85. The authors' interpretation is important: because SR and aneurysm angle account for PARENT VESSEL geometry, they bridge purely morphological studies and location-based risk. An aneurysm that is large relative to a small parent vessel is more dangerous than the same absolute size on a large vessel.",
+      "meta": {
+        "source": "Dhar et al. 2008 - morphology parameters for rupture risk (Neurosurgery)",
+        "citation": "Dhar S, Tremmel M, Mocco J, Kim M, Yamamoto J, Siddiqui AH, Hopkins LN, Meng H. Neurosurgery. 2008;63(2):185-96.",
+        "year": 2008,
+        "topic": "aspect_ratio",
+        "subtopic": "size_ratio",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "cohort",
+        "n": 45,
+        "applies_to": ["size_ratio", "aspect_ratio", "parent_vessel", "aneurysm_angle"]
+      }
+    },
+    {
+      "text": "For SMALL aneurysms (<=5 mm) specifically — the size band where clinical scores perform worst — morphology carries proportionally more information. In a study of 263 patients with single small aneurysms (128 ruptured, 135 unruptured), ANEURYSM SIZE ITSELF DID NOT DIFFER between the ruptured and unruptured groups (4.28 mm vs 4.21 mm, p=0.191). Neither did any clinical risk factor (age, sex, smoking, hypertension, SAH history, family history; all p>0.05). What DID differ: flow angle (123.68 vs 112.19 degrees, p<0.001), aspect ratio (1.61 vs 1.49, p=0.008), size ratio (1.86 vs 1.71, p<0.001), and height-width ratio (1.50 vs 1.43, p=0.008). Logistic regression retained AR (p=0.034), SR (p=0.004), H/W (p=0.003) and flow angle (p<0.001) as independent correlates. Read carefully: in the small-aneurysm regime, diameter is NOT the discriminator and shape IS. Note also that the ruptured-group AR mean was 1.61 and the unruptured 1.49 — the distributions overlap heavily, so these are population shifts, not individual thresholds.",
+      "meta": {
+        "source": "Morphological parameters in small intracranial aneurysms (Scientific Reports 2018)",
+        "citation": "Scientific Reports 2018;8:6440. n=263 single small aneurysms (<=5mm).",
+        "year": 2018,
+        "topic": "aspect_ratio",
+        "subtopic": "small_aneurysm_morphology",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "cohort",
+        "n": 263,
+        "applies_to": ["small_aneurysm", "under_5mm", "aspect_ratio", "size_ratio", "flow_angle"]
+      }
+    },
+    {
+      "text": "A pragmatic reading of the pooled morphology evidence: adverse geometry — meaning high aspect ratio and high size ratio — is associated with rupture BEYOND size in multiple independent datasets. As a working heuristic, AR >= 1.6 together with irregular morphology function as clinical 'red flags' that should raise concern, but must be interpreted with site and patient context rather than applied as a hard cutoff. Note the sober framing this implies: an aneurysm with AR of 1.4 is below this red-flag heuristic; an AR of 2.1 is clearly above it; an AR between roughly 1.5 and 1.7 sits inside the overlap zone of the ruptured and unruptured distributions and should not be treated as decisive in either direction.",
+      "meta": {
+        "source": "Integrative review of rupture mechanisms - pragmatic morphology thresholds",
+        "citation": "Mechanisms of Intracranial Aneurysm Rupture: An Integrative Review. J Clin Med. 2025;14(22):8256.",
+        "year": 2025,
+        "topic": "aspect_ratio",
+        "subtopic": "threshold_heuristic",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "review",
+        "applies_to": ["aspect_ratio", "AR_1.6", "irregular"]
+      }
+    },
+    {
+      "text": "IRREGULARITY AND DAUGHTER SAC: An irregular protrusion from the aneurysm wall (a daughter sac, or bleb) is one of the more reliable morphological red flags. UCAS Japan quantified it: daughter-sac presence carried a rupture hazard ratio of 1.63 independent of size and location. Mechanistically, a bleb is thought to mark a focal region where the wall has already remodeled or thinned. The ELAPSS growth score includes an explicit shape (regular vs irregular) term, whereas PHASES does not — so a patient with an irregular aneurysm and a low PHASES score has a risk factor that the PHASES number structurally cannot express.",
+      "meta": {
+        "source": "Daughter sac / irregular morphology as an independent risk factor",
+        "citation": "Morita A, et al. N Engl J Med. 2012;366:2474-2482 (UCAS); Backes D, et al. Neurology. 2017 (ELAPSS shape term).",
+        "year": 2012,
+        "topic": "aspect_ratio",
+        "subtopic": "irregularity",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "prospective_cohort",
+        "applies_to": ["daughter_sac", "irregular", "bleb"]
+      }
+    },
+    {
+      "text": "3D morphological quantification performs comparably to clinical scores for RUPTURE but poorly for GROWTH — an asymmetry with direct bearing on how much weight to place on shape. A multivariable model built on 3D-quantified major axis and shape index predicted rupture with a c-statistic of 0.85 (95% CI 0.77-0.94), similar to PHASES' c-statistic of 0.82 in its own development cohort. But the same 3D model predicted GROWTH with a c-statistic of only 0.56 (95% CI 0.49-0.63), worse than ELAPSS' 0.68 in external validation. The conclusion the authors draw: image-based prediction of aneurysm instability via 3D morphological quantification is feasible, and is ESPECIALLY true for predicting rupture. Morphology is a rupture signal, not a growth signal.",
+      "meta": {
+        "source": "3D quantified morphological predictors of aneurysm instability (AJNR)",
+        "citation": "AJNR Am J Neuroradiol. 2025;doi:10.3174/ajnr.A8809.",
+        "year": 2025,
+        "topic": "aspect_ratio",
+        "subtopic": "predictive_performance",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "cohort",
+        "applies_to": ["3d_morphology", "shape_index", "rupture_vs_growth"]
+      }
+    }
+  ]
+}

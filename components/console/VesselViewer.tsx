@@ -5,12 +5,21 @@ import { Canvas } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { useReducedMotion } from "framer-motion";
 import type { CaseMeta } from "@/types";
-import { PALETTE } from "@/lib/palette";
 import { useConsoleStore } from "@/lib/store";
 import CaseModel from "./viewer/CaseModel";
+import CaseSceneProvider from "./viewer/CaseSceneProvider";
+import Streamlines from "./viewer/Streamlines";
+import CatheterRoute from "./viewer/CatheterRoute";
+import GeometryAnnotations from "./viewer/GeometryAnnotations";
+import CameraDirector from "./viewer/CameraDirector";
+import BrainHull from "./viewer/BrainHull";
+import GraphOverlay from "./viewer/GraphOverlay";
 import AdaptiveOrbitControls from "./viewer/AdaptiveOrbitControls";
 import ViewerLoader from "./viewer/ViewerLoader";
 import ViewerErrorBoundary from "./viewer/ViewerErrorBoundary";
+import WssLegend from "./viewer/WssLegend";
+import WhatIfControls from "./viewer/WhatIfControls";
+import LayerControls from "./viewer/LayerControls";
 
 const MODE_LABEL: Record<string, string> = {
   anatomy: "Anatomy",
@@ -43,10 +52,13 @@ function StaticFallback({ onRetry }: { onRetry: () => void }) {
 export default function VesselViewer({ caseMeta }: { caseMeta: CaseMeta }) {
   const reduced = !!useReducedMotion();
   const mode = useConsoleStore((s) => s.mode);
+  const brainVisible = useConsoleStore((s) => s.brainVisible);
+  const graphVisible = useConsoleStore((s) => s.graphVisible);
   const [contextLost, setContextLost] = useState(false);
 
   useEffect(() => {
-    // Warm the cache so the loader resolves quickly.
+    // Warm only the always-shown meshes. The brain hull loads on demand when
+    // toggled — never on initial load (keeps the first paint light on the tunnel).
     useGLTF.preload(caseMeta.assets.vesselTree);
     useGLTF.preload(caseMeta.assets.aneurysm);
   }, [caseMeta]);
@@ -70,10 +82,18 @@ export default function VesselViewer({ caseMeta }: { caseMeta: CaseMeta }) {
           >
             <ambientLight intensity={0.65} />
             <directionalLight position={[5, 6, 8]} intensity={1.1} />
-            {/* cyan rim light for depth; no post-processing bloom on anatomy */}
-            <directionalLight position={[-6, -3, -5]} intensity={0.5} color={PALETTE.accent} />
+            {/* soft neutral rim light for depth; no post-processing bloom on anatomy */}
+            <directionalLight position={[-6, -3, -5]} intensity={0.5} color={"#dfe8f2"} />
             <Suspense fallback={null}>
-              <CaseModel caseMeta={caseMeta} reducedMotion={reduced} />
+              <CaseSceneProvider caseMeta={caseMeta}>
+                <CaseModel caseMeta={caseMeta} reducedMotion={reduced} />
+                {brainVisible && caseMeta.assets.brain && <BrainHull url={caseMeta.assets.brain} />}
+                {graphVisible && <GraphOverlay />}
+                {mode === "hemodynamics" && <Streamlines reducedMotion={reduced} />}
+                {mode === "navigation" && <CatheterRoute reducedMotion={reduced} />}
+                <GeometryAnnotations caseMeta={caseMeta} />
+                <CameraDirector reducedMotion={reduced} />
+              </CaseSceneProvider>
             </Suspense>
             <AdaptiveOrbitControls reducedMotion={reduced} />
           </Canvas>
@@ -81,6 +101,11 @@ export default function VesselViewer({ caseMeta }: { caseMeta: CaseMeta }) {
       )}
 
       <ViewerLoader />
+
+      {/* DOM overlays */}
+      {!contextLost && <LayerControls caseMeta={caseMeta} />}
+      {!contextLost && mode === "hemodynamics" && <WssLegend caseMeta={caseMeta} />}
+      {!contextLost && mode === "whatif" && <WhatIfControls caseMeta={caseMeta} />}
 
       {/* mode badge */}
       <div className="pointer-events-none absolute bottom-4 left-4 z-10 flex items-center gap-2">

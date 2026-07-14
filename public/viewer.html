@@ -1,0 +1,1510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NeuroVas Copilot — 3D Artifact Viewer</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden;
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #0a0d12; color: #e8edf2; }
+  #app { position: fixed; inset: 0; }
+  #panel { position: fixed; top: 14px; left: 14px; width: 288px; max-height: calc(100% - 28px);
+    overflow:auto; background: rgba(16,20,27,.86); backdrop-filter: blur(8px);
+    border: 1px solid #222b36; border-radius: 12px; padding: 14px 15px; z-index: 10; }
+  #panel h1 { font-size: 14px; margin: 0 0 2px; letter-spacing:.2px; color:#e8edf2; }
+  #panel .sub { font-size: 11px; color: #8794a3; margin-bottom: 12px; }
+  select { width: 100%; background:#0d1117; color:#e8edf2; border:1px solid #2a333f;
+    border-radius:8px; padding:7px 9px; font-size:13px; margin-bottom:12px; }
+  .row { display:flex; align-items:center; gap:8px; padding:5px 2px; font-size:13px; }
+  .row input { accent-color:#4aa3ff; width:15px; height:15px; }
+  .row .sw { width:11px; height:11px; border-radius:3px; flex:0 0 auto; }
+  /* Layers gated behind aneurysm-sac detection: dimmed + un-clickable until the sac is found. */
+  .row.locked { opacity:.4; cursor:not-allowed; }
+  .row.locked input { cursor:not-allowed; }
+  .lockhint { font-size:10px; color:#67727f; margin:2px 2px 4px 22px; font-style:italic; }
+  .lockhint.hidden { display:none; }
+  .sec { font-size:10px; text-transform:uppercase; letter-spacing:.9px; color:#67727f;
+    margin:12px 0 3px; }
+  #morph { font-size:12px; line-height:1.55; }
+  #morph b { color:#fff; } #morph .k { color:#8794a3; }
+  .flag { color:#ffb454; font-size:11px; margin-top:6px; }
+  #hint { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; color:#67727f; z-index:10; }
+  #status { position: fixed; top: 14px; right: 14px; font-size:11px; color:#8794a3;
+    background: rgba(16,20,27,.86); border:1px solid #222b36; border-radius:8px; padding:6px 10px; z-index:10; }
+  button.mini { background:#182029; color:#cdd6e0; border:1px solid #2a333f; border-radius:7px;
+    padding:6px 9px; font-size:12px; cursor:pointer; width:100%; margin-top:6px; }
+  button.mini:hover { background:#212c38; }
+  button.cta { width:100%; margin-top:4px; padding:9px 10px; border-radius:8px; cursor:pointer;
+    font-size:12px; font-weight:700; letter-spacing:.6px; color:#1a1400;
+    background:linear-gradient(180deg,#ffe873,#ffcf1f); border:1px solid #e0b000;
+    box-shadow:0 0 0 rgba(255,207,31,0); transition:filter .15s, box-shadow .3s; }
+  button.cta:hover { filter:brightness(1.08); box-shadow:0 0 16px rgba(255,207,31,.35); }
+  button.cta:disabled { cursor:default; filter:none; color:#5a5330;
+    background:linear-gradient(180deg,#8f8535,#6f6720); border-color:#5a5320; }
+  button.cta.searching { animation:ctapulse 1s ease-in-out infinite; }
+  @keyframes ctapulse { 0%,100%{box-shadow:0 0 6px rgba(255,207,31,.25);} 50%{box-shadow:0 0 20px rgba(255,207,31,.6);} }
+  .cathstatus { font-size:11px; color:#c9b25a; min-height:14px; margin:6px 2px 0; line-height:1.4; }
+  #sacStatus { font-size:11px; color:#ff9a3c; min-height:14px; margin:6px 2px 0; line-height:1.4; }
+  /* Floating measurement callout that tracks the sac after detection */
+  #sacCallout { position:absolute; transform:translate(-50%,-165%); display:none; white-space:nowrap;
+    font-size:11px; font-weight:700; letter-spacing:.2px; color:#1a1200; padding:2px 8px; line-height:17px;
+    background:linear-gradient(180deg,#ffb865,#ff9a3c); border-radius:9px;
+    box-shadow:0 0 12px rgba(255,154,60,.5); }
+  /* Catheter procedure roadmap (stepwise access plan under the CTA) */
+  #cathRoadmap { font-size:11px; line-height:1.5; margin:6px 2px 0; display:none; }
+  #cathRoadmap .rmhdr { color:#ffd21f; font-weight:700; letter-spacing:.3px; margin-bottom:3px; }
+  #cathRoadmap .rm { display:flex; gap:7px; padding:1px 0; }
+  #cathRoadmap .rm .n { color:#67727f; width:12px; flex:0 0 auto; text-align:right; }
+  #cathRoadmap .rm.easy .d { color:#2ee66a; }
+  #cathRoadmap .rm.mod  .d { color:#ffb454; }
+  #cathRoadmap .rm.hard .d { color:#ff5a3c; }
+  #cathRoadmap .rm.land .d { color:#ffd21f; }
+  #cathRoadmap .rm.sel { outline:2px solid #ffe34a; outline-offset:-2px; border-radius:6px;
+    background:rgba(255,227,74,.12); }   /* row synced to a clicked 3D segment */
+  /* Numbered hop pins projected onto the 3D route */
+  .routelab { position:absolute; transform:translate(-50%,-150%); font-size:10px; font-weight:700;
+    color:#0a0d12; background:#ffd21f; border-radius:8px; padding:0 6px; line-height:16px;
+    white-space:nowrap; box-shadow:0 0 8px rgba(255,210,31,.45); }
+  .routelab.land { transform:translate(-50%,-165%); background:#ffe873; }
+  /* Collapse + resize affordances for the control panel */
+  .paneltoggle { position:absolute; top:11px; right:11px; width:22px; height:22px; padding:0;
+    display:flex; align-items:center; justify-content:center; font-size:13px; line-height:1;
+    background:#182029; color:#8794a3; border:1px solid #2a333f; border-radius:6px; cursor:pointer; z-index:12; }
+  .paneltoggle:hover { background:#212c38; color:#cdd6e0; }
+  #panel.collapsed { display:none; }
+  #panelExpand { position:fixed; top:14px; left:14px; z-index:11; display:none;
+    width:30px; height:30px; align-items:center; justify-content:center; font-size:15px;
+    background:rgba(16,20,27,.86); backdrop-filter:blur(8px); color:#cdd6e0;
+    border:1px solid #222b36; border-radius:9px; cursor:pointer; }
+  #panelExpand:hover { background:rgba(33,44,56,.9); }
+  #panelGrip { position:absolute; top:0; bottom:0; right:0; width:9px; cursor:col-resize; z-index:11; }
+  #panelGrip::after { content:""; position:absolute; top:50%; right:2px; transform:translateY(-50%);
+    width:2px; height:34px; border-radius:2px; background:#2a333f; opacity:0; transition:opacity .15s; }
+  #panelGrip:hover::after { opacity:1; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="status">loading…</div>
+<div id="panel">
+  <button id="panelToggle" class="paneltoggle" title="Collapse panel" aria-label="Collapse panel">«</button>
+  <h1>NeuroVas Copilot</h1>
+  <div class="sub">3D artifact viewer · mm world frame</div>
+  <select id="caseSel"></select>
+
+  <div class="sec">Aneurysm</div>
+  <button class="cta" id="findSacBtn">FIND ANEURYSM SAC</button>
+  <div id="sacStatus"></div>
+
+  <div class="sec">Layers</div>
+  <label class="row"><input type="checkbox" id="t-brain" checked><span class="sw" style="background:#9fb4d8"></span>Brain (context)</label>
+  <label class="row"><input type="checkbox" id="t-vessel" checked><span class="sw" style="background:#e0483a"></span>Vessel tree</label>
+  <div class="lockhint" id="layerLockHint">🔒 Find the aneurysm sac to unlock these layers</div>
+  <label class="row gatedrow" id="row-t-wss"><input type="checkbox" id="t-wss"><span class="sw" style="background:linear-gradient(90deg,#00e5ff,#6a2cff,#b026ff,#ff2ec4)"></span>WSS heatmap</label>
+  <div id="wsslegend" style="display:none; font-size:11px; margin:2px 0 4px 22px; color:#b7c2cd;">
+    <span style="display:inline-block;width:96px;height:9px;border-radius:3px;background:linear-gradient(90deg,#00e5ff,#6a2cff,#b026ff,#ff2ec4);vertical-align:middle"></span>
+    <span id="wssrange"></span></div>
+  <label class="row gatedrow" id="row-t-wsspt"><input type="checkbox" id="t-wsspt" checked><span class="sw" style="background:radial-gradient(circle,#ff5a3c,#4aa3ff)"></span>WSS hotspots ◎</label>
+  <label class="row gatedrow" id="row-t-graph"><input type="checkbox" id="t-graph" checked><span class="sw" style="background:#5b6a7d"></span>Centerline graph</label>
+  <label class="row gatedrow" id="row-t-stream"><input type="checkbox" id="t-stream" checked><span class="sw" style="background:linear-gradient(90deg,#8b0000,#ff2020,#ff7a20)"></span>Hemodynamic flow ▸</label>
+  <label class="row gatedrow" id="row-t-grid"><input type="checkbox" id="t-grid"><span class="sw" style="background:#2ee66a"></span>Scale grid<span style="color:#67727f;margin-left:auto;font-size:11px">5&nbsp;mm</span></label>
+  <div class="sec">Endovascular access</div>
+  <button class="cta" id="findCathBtn">FIND CATHETER ROUTE</button>
+  <div id="cathStatus" class="cathstatus"></div>
+  <div id="cathRoadmap"></div>
+
+  <div class="sec">Node types</div>
+  <div class="row"><span class="sw" style="background:#38d96b"></span>entry &nbsp;<span class="sw" style="background:#ff3b3b"></span>aneurysm &nbsp;<span class="sw" style="background:#66b8ff"></span>bifurcation &nbsp;<span class="sw" style="background:#9ed6ff"></span>endpoint</div>
+
+  <div class="sec">Morphology</div>
+  <div id="morph">—</div>
+
+  <button class="mini" id="resetBtn">Reset view</button>
+  <button class="mini" id="spinBtn">Toggle auto-rotate</button>
+  <div id="panelGrip" title="Drag to resize panel"></div>
+</div>
+<button id="panelExpand" title="Show panel" aria-label="Show panel">»</button>
+<div id="hint">drag to rotate freely · scroll to zoom · right-drag to pan</div>
+<div id="wsslabels" style="position:fixed; inset:0; pointer-events:none; z-index:9;"></div>
+<div id="routelabels" style="position:fixed; inset:0; pointer-events:none; z-index:9;"></div>
+<div id="sacCallout"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const CASES = ['HERO_sub013', 'C0001', 'CMHA_AHMU1218001', 'LAUSANNE_sub000'];
+const statusEl = document.getElementById('status');
+const setStatus = (t) => statusEl.textContent = t;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050608);           // near-black — deep red vessels pop against it
+scene.fog = new THREE.Fog(0x050608, 240, 680);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 5000);
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.getElementById('app').appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xbcd4ff, 0x0a0d12, 1.05));      // cool neutral sky / dark ground
+const key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(1,1,1); scene.add(key);
+const fill = new THREE.DirectionalLight(0x88aaff, .6); fill.position.set(-1,-.4,-1); scene.add(fill);   // soft blue fill
+const rim = new THREE.DirectionalLight(0xffd9c0, .5); rim.position.set(0,-1,1.4); scene.add(rim);       // warm back rim
+
+// TrackballControls = free reorientation (roll/flip to any orientation), not just orbit-around.
+// It moves the CAMERA (position + target), so all anatomy stays in world coords and every
+// world→screen projection (route pins, WSS labels, click picking) keeps working unchanged.
+const controls = new TrackballControls(camera, renderer.domElement);
+controls.rotateSpeed = 3.0;          // trackball feels sluggish at 1
+controls.zoomSpeed = 1.2;
+controls.panSpeed = 0.8;
+controls.staticMoving = false;       // inertial glide
+controls.dynamicDampingFactor = 0.12;
+
+const gltf = new GLTFLoader();
+gltf.setRequestHeader({ 'ngrok-skip-browser-warning': 'true' });   // free-ngrok interstitial bypass
+const groups = {};                 // layer name -> THREE.Group
+for (const n of ['grid','brain','vessel','aneurysm','graph','stream','cath','wss','search','hl']) {
+  groups[n] = new THREE.Group(); scene.add(groups[n]);       // 'hl' = named-element highlights (never gated by a layer toggle)
+}
+let pathfind = null;               // per-case pathfinding state (adjacency, entries, target, routes)
+let search = null;                 // live catheter-search animation state (null when idle)
+// ── Aneurysm-sac detection gate ────────────────────────────────────────────────
+// The sac must be "found" (FIND ANEURYSM SAC) before any analysis layer or catheter
+// route is shown. Everything except the vessel tree + brain context is gated on this.
+let sacDetected = false;           // has the detection animation completed for this case?
+let sacScan = null;                // live detection-animation state (null when idle) — see animateSacDetect()
+const pendingAfterSac = [];        // actions deferred until detection completes ("detect first, then show")
+const GATED = new Set(['t-graph','t-wss','t-wsspt','t-stream','t-grid']);  // checkbox layers behind the gate (catheter handled separately)
+let morphNow = null;               // {maxD, neck, ar} stashed from morphology.json for the sac callout
+let hotspots = [];                 // WSS peak/low-shear markers with tracked HTML labels
+let routeLabels = [];              // catheter roadmap hop pins with tracked HTML labels
+let aneurysmGeoWorld = null;       // {pos: Float32Array world-mm, count}
+const clear = (g) => { while (g.children.length) { const c = g.children.pop();
+  c.geometry?.dispose?.(); c.material?.dispose?.(); } };
+let aneurysmMeshes = [];            // for the WSS-heatmap material swap
+let highlightRegistry = {};         // vocab id -> anchor entry (rebuilt per case) — see Step 1
+let activeHighlights = [];          // live pulse instances, decayed each frame in animateHighlights()
+const clock = new THREE.Clock();
+let flow = { lines: [], geo: null, points: null, states: [], vmax: 1 };
+function jet(t){ t = Math.max(0, Math.min(1, t));   // neon: cyan(low) -> indigo -> purple -> hot pink(high) — WSS heatmap
+  const s = [[0.0,0.9,1.0],[0.35,0.25,1.0],[0.75,0.15,1.0],[1.0,0.18,0.72]], p = [0,0.35,0.7,1.0];
+  let i = 0; while (i < p.length-2 && t > p[i+1]) i++;
+  const f = (t - p[i]) / ((p[i+1]-p[i]) || 1), a = s[i], b = s[i+1];
+  return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; }
+function blood(t){ t = Math.max(0, Math.min(1, t));   // BLOOD: dark red (slow) -> deeper red (fast)
+  return [0.42 + 0.42*t, 0.03 + 0.09*t, 0.03 + 0.06*t]; }
+const SPRITE = (() => {                                // soft radial sprite -> particles glow & merge (fluid)
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'), g = x.createRadialGradient(32,32,0, 32,32,32);
+  g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.3,'rgba(255,255,255,.55)'); g.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0,0,64,64);
+  return new THREE.CanvasTexture(c);
+})();
+
+const bust = (u) => u + '?t=' + Date.now();   // artifacts change on disk; never serve stale cache
+async function fetchJSON(u){ const r = await fetch(bust(u), { headers: { 'ngrok-skip-browser-warning': 'true' } }); if(!r.ok) throw new Error(u); return r.json(); }
+function loadGLB(u){ return new Promise((res,rej)=> gltf.load(bust(u), g=>res(g), undefined, rej)); }
+
+const TYPE_COLOR = { entry:0x38d96b, aneurysm:0xff3b3b, bifurcation:0x66b8ff, endpoint:0x9ed6ff };
+
+let worldR = 100, worldCenter = new THREE.Vector3();   // whole-scene extent (set once per case)
+
+// Clip planes + fog are scaled to the WHOLE scene once per case — NOT to the framed sub-box.
+// (Previously frame() derived fog/far from the framed box radius, so a small frame collapsed the
+// fog to a few cm and zooming out fogged the model into the near-black background.)
+function configureDepth(fullBox){
+  const s = fullBox.isEmpty() ? new THREE.Vector3(150,150,150) : fullBox.getSize(new THREE.Vector3());
+  worldR = Math.max(1, 0.5 * Math.hypot(s.x, s.y, s.z));
+  worldCenter = fullBox.isEmpty() ? new THREE.Vector3() : fullBox.getCenter(new THREE.Vector3());
+  camera.near = Math.max(0.01, worldR/600);
+  camera.far  = worldR*80;
+  camera.updateProjectionMatrix();
+  scene.fog.near = worldR*4;                          // gentle depth cue only — never near the model
+  scene.fog.far  = worldR*22;
+  controls.minDistance = worldR*0.12;
+  controls.maxDistance = worldR*5.5;                  // bounded zoom-out: can't reach the fogged void
+}
+
+// ── Scale-grid "fabric": a green graph-paper floor the model rests on ───────────
+// Cells are a FIXED real size (5 mm minor / 25 mm major), so it grounds the scene in space
+// AND doubles as a ruler you can read the aneurysm's dimensions off of. Rebuilt per case.
+function buildGrid(fullBox){
+  clear(groups.grid);
+  if (fullBox.isEmpty()) return;
+  const c = fullBox.getCenter(new THREE.Vector3());
+  const bs = fullBox.getSize(new THREE.Vector3());
+  const foot = Math.max(bs.x, bs.z);                            // horizontal footprint, NOT the tall 3D diagonal
+  const floorY = fullBox.min.y - Math.max(2, foot * 0.05);     // just under the model → it sits ON the grid
+  const size = Math.max(80, foot * 2.2);                        // a pad around the model, not a world-spanning plane
+  const mk = (cells, color, opacity) => {
+    const g = new THREE.GridHelper(size, Math.max(1, Math.round(cells)), color, color);
+    g.material.transparent = true; g.material.opacity = opacity; g.material.depthWrite = false;
+    g.position.set(c.x, floorY, c.z);
+    groups.grid.add(g);
+  };
+  mk(size / 5,  0x1e7a44, 0.20);   // minor grid — 5 mm cells (the ruler unit)
+  mk(size / 25, 0x35e070, 0.42);   // major grid — 25 mm emphasis lines
+  // faint plumb line: drop the aneurysm centre onto the fabric so the sac visibly "sits" on it
+  const f = aneurysmFocus();
+  if (f){
+    const pl = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([f.c.clone(), new THREE.Vector3(f.c.x, floorY, f.c.z)]),
+      new THREE.LineBasicMaterial({ color:0x35e070, transparent:true, opacity:0.30 }));
+    groups.grid.add(pl);
+  }
+}
+
+function frame(box){
+  fly = null; focusCenter = null;              // an instant frame cancels any smooth camera motion
+  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+  const r = Math.max(s.x,s.y,s.z);
+  controls.target.copy(c);
+  camera.position.copy(c).add(new THREE.Vector3(r*.6, r*.35, r*1.7));
+  // depth (near/far/fog/zoom-limits) is owned by configureDepth() — see note above
+}
+
+// ── Copilot camera choreography: "thinking" orbit + smooth focus/settle ────────
+// The copilot posts setThinking/settle/focusAneurysm as it reasons; this makes the model
+// come alive (orbit + smooth zoom) during a chunk of reasoning, then settle in context —
+// instead of the old hard snap into the ~6 mm sac. Coexists with the catheter search,
+// which owns the camera via frameAnatomy() → flyTo() (a shared tween, not a hard snap).
+let manualSpin  = false;   // "Toggle auto-rotate" button
+let thinking    = false;   // copilot is reasoning → gentle alive orbit
+let fly         = null;    // active absolute-pose tween {fromP,toP,fromT,toT,t0,dur}
+let focusCenter = null;    // THREE.Vector3 the orbit eases its target toward (while spinning)
+let focusDist   = 0;       // desired camera↔target distance for in-context framing
+let focusK      = 1.5;     // focusCenter ease speed (snappy for the thinking zoom, slow for fly-out)
+let spinOut     = false;   // post-reasoning: rotating pull-back to the default view + gentle idle spin
+let spinConvergeAt = 0;    // once past this, release the fly-out ease but keep the idle spin
+let _camLast    = performance.now();
+let autoSpinSpeed = 0;     // rad/s idle spin — TrackballControls has no autoRotate; stepCamera drives it
+function applyAutoRotate(){
+  if (search || fly){ autoSpinSpeed = 0; return; }             // catheter search / a flyTo own the camera
+  if (thinking)        autoSpinSpeed = 0.09;                   // gentle alive orbit while reasoning
+  else if (spinOut)    autoSpinSpeed = 0.075;                  // post-reasoning idle drift
+  else if (manualSpin) autoSpinSpeed = 0.15;                   // "Toggle auto-rotate" button
+  else                 autoSpinSpeed = 0;
+}
+function flyTo(camPos, targetPos, durationMs){
+  focusCenter = null;
+  fly = { fromP: camera.position.clone(), toP: camPos.clone(),
+          fromT: controls.target.clone(), toT: targetPos.clone(),
+          t0: performance.now(), dur: Math.max(1, durationMs) };
+  applyAutoRotate();
+}
+// Frame the sac WITH surrounding vessel context (generous standoff) — never a point-zoom.
+function aneurysmFocus(){
+  const g = groups.aneurysm.children.length ? groups.aneurysm
+          : groups.vessel.children.length   ? groups.vessel : null;
+  if (!g) return null;
+  const box = new THREE.Box3().setFromObject(g);
+  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+  const r = Math.max(s.x, s.y, s.z, 1);
+  return { c, dist: Math.min(95, Math.max(46, r * 9)) };       // 6 mm sac → ~55 mm standoff = in context
+}
+function focusAneurysmNow(){   // ungated camera move to the sac (used by both the gate wrapper and the detection animation)
+  const f = aneurysmFocus(); if (!f) return;
+  if (thinking){ focusCenter = f.c.clone(); focusDist = f.dist; }   // smooth retarget while orbiting
+  else {                                                            // gentle glide when not reasoning
+    let dir = camera.position.clone().sub(controls.target);
+    if (dir.lengthSq() < 1e-6) dir.set(0.55, 0.32, 1);
+    flyTo(f.c.clone().add(dir.setLength(f.dist)), f.c, 900);
+  }
+}
+function focusAneurysm(){
+  if (!sacDetected){ findAneurysmSac(); return; }   // "look at the aneurysm" → find it first (detection frames it)
+  focusAneurysmNow();
+}
+// End-of-reasoning: fly the camera OUT to the whole-scene default view WHILE the model rotates,
+// then keep a gentle idle spin. Uses the focusCenter/focusDist ease (which — unlike flyTo — does
+// NOT disable autoRotate), so the pull-back and the rotation happen together.
+function flyOutSpin(){
+  fly = null; thinking = false;
+  focusCenter = worldCenter.clone();
+  focusDist = worldR * 2.0;                                      // comfortable whole-scene standoff (≈ default frame)
+  focusK = 0.3;                                                  // slow, deliberate ~2s pull-back
+  spinConvergeAt = performance.now() + 2500;                     // after this: release the ease, keep spinning
+  spinOut = true;
+  applyAutoRotate();
+}
+function stepCamera(){                                            // advance the active tween each frame (before controls.update)
+  const now = performance.now();
+  const dt = Math.min(0.05, (now - _camLast) / 1000); _camLast = now;
+  if (fly){
+    const u = Math.min(1, (now - fly.t0) / fly.dur), e = u*u*(3-2*u);
+    camera.position.lerpVectors(fly.fromP, fly.toP, e);
+    controls.target.lerpVectors(fly.fromT, fly.toT, e);
+    if (u >= 1){ fly = null; applyAutoRotate(); }
+  } else if (focusCenter){
+    const k = 1 - Math.pow(0.001, dt * focusK);                  // frame-rate-independent ease (CameraDirector-style)
+    controls.target.lerp(focusCenter, k);
+    const off = camera.position.clone().sub(controls.target), len = off.length() || 1;
+    camera.position.copy(controls.target).add(off.setLength(len + (focusDist - len) * k));
+    if (spinOut && now > spinConvergeAt) focusCenter = null;     // pulled out — release so the user can drag/zoom freely
+  }
+  // idle auto-spin (replaces OrbitControls.autoRotate) — composes with the focusCenter ease above
+  if (!fly && !search && autoSpinSpeed){
+    const off = camera.position.clone().sub(controls.target);
+    off.applyAxisAngle(camera.up.clone().normalize(), autoSpinSpeed * dt);
+    camera.position.copy(controls.target).add(off);
+  }
+}
+
+// ── Catheter route: animated pathfinding ("FIND CATHETER ROUTE") ───────────────
+function chordLen(P){ if(!P||P.length<2) return 0.001;
+  const a=P[0], b=P[P.length-1]; return Math.max(0.001, Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2])); }
+const cathBtn = () => document.getElementById('findCathBtn');
+function setCathStatus(t){ const el = document.getElementById('cathStatus'); if (el) el.textContent = t || ''; }
+function clearRouteLabels(){ routeLabels.forEach(r => r.el && r.el.remove()); routeLabels = []; }
+function hideRoadmap(){ const el = document.getElementById('cathRoadmap'); if (el){ el.style.display='none'; el.innerHTML=''; } }
+// Smooth pull-back to a zoomed-out, whole-brain 3/4 perspective — a doctor's view of the whole
+// vasculature. Held through BOTH search and reveal, so the route never dives into the sac.
+function frameAnatomy(){
+  const b = new THREE.Box3();
+  for (const g of ['brain','vessel','cath'])
+    if (groups[g].children.length) b.expandByObject(groups[g]);
+  if (b.isEmpty() && groups.graph.children.length) b.expandByObject(groups.graph);
+  if (b.isEmpty()) return;
+  const c = b.getCenter(new THREE.Vector3()), s = b.getSize(new THREE.Vector3());
+  const r = Math.max(s.x, s.y, s.z, 1);
+  const dir = new THREE.Vector3(0.5, 0.28, 1).normalize();
+  flyTo(c.clone().add(dir.multiplyScalar(r*1.85)), c, 1100);
+}
+function resetCathUI(){
+  const b = cathBtn();
+  if (b){ b.disabled = false; b.classList.remove('searching'); b.textContent = 'FIND CATHETER ROUTE'; }
+  setCathStatus('');
+}
+const COL_FLASH  = new THREE.Color(1, 1, .78);      // freshly-touched edge (bright)
+const COL_YELLOW = new THREE.Color(0xffe34a);       // settled explored edge
+const COL_GOLD   = new THREE.Color(0xffd21f);       // winning path
+const COL_DIM    = new THREE.Color(0x39414d);       // abandoned branch (grayed out)
+
+// Multi-source Dijkstra over the kept subgraph, weighted by segment length. settleOrder =
+// the edge used to first settle each node, in pop order — a radial spanning tree that
+// naturally includes dead-end branches (this is the "trying to find a path" wavefront).
+function dijkstra(pf){
+  const dist = new Map(), prevEdge = new Map(), prevNode = new Map(), settled = new Set();
+  const settleOrder = [], pq = [];
+  for (const s of pf.entries){ if(!dist.has(s)){ dist.set(s,0); pq.push({node:s,d:0}); } }
+  while (pq.length){
+    let mi=0; for(let i=1;i<pq.length;i++) if(pq[i].d<pq[mi].d) mi=i;   // extract-min (graph is tiny)
+    const {node,d} = pq.splice(mi,1)[0];
+    if (settled.has(node)) continue;
+    settled.add(node);
+    if (prevEdge.has(node)) settleOrder.push(prevEdge.get(node));
+    for (const nb of (pf.adj.get(node)||[])){
+      if (settled.has(nb.to)) continue;
+      const nd = d + nb.len;
+      if (nd < (dist.get(nb.to) ?? Infinity)){
+        dist.set(nb.to, nd); prevEdge.set(nb.to, nb.edgeId); prevNode.set(nb.to, node);
+        pq.push({ node: nb.to, d: nd });
+      }
+    }
+  }
+  const chain = []; let cur = pf.target;                               // reconstruct entry -> target
+  while (prevEdge.has(cur)){ chain.push({ edgeId: prevEdge.get(cur), to: cur, from: prevNode.get(cur) }); cur = prevNode.get(cur); }
+  chain.reverse();
+  return { settleOrder, chain, pathEdges: new Set(chain.map(c=>c.edgeId)),
+           reached: chain.length>0 || pf.entries.includes(pf.target),
+           totalDist: dist.get(pf.target), hops: chain.length };
+}
+
+// Stitch the winning path edges' polylines into one oriented, de-duplicated point list.
+function stitchPath(chain){
+  const out = [], _v = new THREE.Vector3();
+  for (const c of chain){
+    const ed = pathfind.keptEdges.find(e=>e.id===c.edgeId); if (!ed || !ed.polyline) continue;
+    const P = ed.polyline.map(p => new THREE.Vector3(p[0],p[1],p[2]));
+    const fp = pathfind.nodes.get(c.from)?.pos;                        // orient to start at the `from` node
+    if (fp){ _v.set(fp[0],fp[1],fp[2]);
+      if (P[P.length-1].distanceToSquared(_v) < P[0].distanceToSquared(_v)) P.reverse(); }
+    for (const p of P){ if (out.length && out[out.length-1].distanceToSquared(p) < 1e-6) continue; out.push(p); }
+  }
+  return out;
+}
+
+// The button handler (also the copilot's `findCatheter` message target).
+function findCatheterRoute(){
+  if (!sacDetected){ pendingAfterSac.push(findCatheterRoute); findAneurysmSac(); return; }  // sac is the route's target — find it first
+  if (!pathfind || !pathfind.ready){ setCathStatus('no graph for this case'); return; }
+  clear(groups.search); clear(groups.cath); clearRouteLabels(); hideRoadmap();
+  const res = dijkstra(pathfind);
+  const edges = new Map();                                             // edgeId -> { mat, mesh }
+  for (const e of pathfind.keptEdges){
+    const P = e.polyline || []; if (P.length < 2) continue;
+    const pts = P.map(p => new THREE.Vector3(p[0],p[1],p[2]));
+    // bright additive tube (unlit, glows on black, thick + reads through the translucent vessels)
+    const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),
+      Math.min(120, Math.max(2, pts.length)), 0.55, 6, false);
+    const mat = new THREE.MeshBasicMaterial({ color:0xfff04a, transparent:true, opacity:0,
+      blending:THREE.AdditiveBlending, depthWrite:false });
+    const mesh = new THREE.Mesh(geo, mat); mesh.visible = false; groups.search.add(mesh);
+    edges.set(e.id, { mat, mesh });
+  }
+  const order = res.settleOrder.filter(id => edges.has(id));           // wavefront order
+  const seen = new Set(order);                                         // append never-settled kept edges last
+  for (const e of pathfind.keptEdges) if (!seen.has(e.id) && edges.has(e.id)) order.push(e.id);
+  search = { edges, order, pathEdges: res.pathEdges, res,
+             phase:'explore', t0: performance.now(), litAt: new Map(), revealed:0, tubes:null, halo:null, tubeT0:0 };
+  groups.search.visible = true; groups.cath.visible = true;
+  const tb = document.getElementById('t-brain');                      // show the brain hull for anatomical context
+  if (tb && !tb.checked){ tb.checked = true; applyToggles(); }
+  frameAnatomy();   // smooth pull-back to the whole-brain doctor's view — held through search + reveal
+  const b = cathBtn(); if (b){ b.disabled = true; b.classList.add('searching'); b.textContent = 'FINDING…'; }
+  setCathStatus('Searching vasculature…');
+}
+
+// ── Procedure roadmap: turn the winning route into a stepwise access plan ──────
+const SEG_COL   = { easy:0x2ee66a, mod:0xffb454, hard:0xff5a3c };
+const SEG_LABEL = { easy:'straight', mod:'mod. bend', hard:'tortuous' };
+// A labelled navigability HEURISTIC (not a validated difficulty score): a segment is harder to
+// steer through the more tortuous / narrower it is.
+function segClass(ed){
+  const tort = (ed && ed.tortuosity) || 1, rad = (ed && ed.mean_radius_mm) || 1;
+  if (tort > 1.3 || rad < 0.9) return 'hard';
+  if (tort > 1.15 || rad < 1.2) return 'mod';
+  return 'easy';
+}
+// Plain-language "why is this segment this colour" — the reasoning behind segClass(), surfaced on click.
+function segReason(ud){
+  const t = ud.tort != null ? Number(ud.tort).toFixed(2) : '?';
+  const r = ud.radius != null ? Number(ud.radius).toFixed(1) : '?';
+  const base = `Ø${r} mm · tortuosity ${t} — `;
+  if (ud.cls === 'hard') return base + 'tortuous or narrow: hardest to steer a catheter through';
+  if (ud.cls === 'mod')  return base + 'a moderate bend or caliber: some resistance to delivery';
+  return base + 'straight & wide: a catheter passes easily';
+}
+// Flash the ACCESS ROADMAP row that matches a clicked 3D segment (ties the 3D to the panel).
+function flashRoadmapRow(n){
+  const el = document.getElementById('cathRoadmap'); if (!el) return;
+  el.querySelectorAll('.rm.sel').forEach(r => r.classList.remove('sel'));
+  const row = el.querySelector(`.rm[data-seg="${n}"]`);
+  if (row){ row.classList.add('sel'); setTimeout(() => row.classList.remove('sel'), HL_DUR); }
+}
+// Orient one chain edge's polyline to start at its upstream (`from`) node.
+function orientedEdge(c){
+  const ed = pathfind.keptEdges.find(e => e.id === c.edgeId);
+  if (!ed || !ed.polyline || ed.polyline.length < 2) return { ed:null, pts:null };
+  const P = ed.polyline.map(p => new THREE.Vector3(p[0],p[1],p[2]));
+  const fp = pathfind.nodes.get(c.from)?.pos;
+  if (fp){ const v = new THREE.Vector3(fp[0],fp[1],fp[2]);
+    if (P[P.length-1].distanceToSquared(v) < P[0].distanceToSquared(v)) P.reverse(); }
+  return { ed, pts:P };
+}
+function mkRouteLabel(html, cls){
+  const el = document.createElement('div');
+  el.className = 'routelab' + (cls ? ' '+cls : '');
+  el.innerHTML = html;
+  document.getElementById('routelabels').appendChild(el);
+  return el;
+}
+function renderRoadmap(hopStats, len, hops, drew){
+  const el = document.getElementById('cathRoadmap'); if (!el) return;
+  if (!drew){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  const total = (len!=null ? Number(len).toFixed(1)+' mm' : '') + (hops!=null ? ' · '+hops+' hops' : '');
+  const rows = hopStats.map(h => {
+    const rad = (h.radius!=null) ? ' · Ø'+Number(h.radius).toFixed(1) : '';
+    const warn = h.cls === 'hard' ? ' ⚠' : '';
+    return `<div class="rm ${h.cls}" data-seg="${h.n}"><span class="n">${h.n}</span>`
+         + `<span class="d">${Number(h.length).toFixed(1)} mm · ${SEG_LABEL[h.cls]}${rad}${warn}</span></div>`;
+  }).join('');
+  el.innerHTML = `<div class="rmhdr">ACCESS ROADMAP · ${total}</div>${rows}`
+    + `<div class="rm land"><span class="n">◎</span><span class="d">landing · neck</span></div>`;
+  el.style.display = 'block';
+}
+
+function startReveal(S){
+  S.phase = 'reveal';
+  const routes = pathfind.routes;
+  const chain = S.res.chain || [];
+  S.tubes = [];
+  const hopStats = [];
+
+  // per-segment difficulty-coloured tubes from the winning chain → the route reads as a
+  // navigability heatmap (green straight · amber bend · red tortuous/tight), not one gold line.
+  for (let i = 0; i < chain.length; i++){
+    const { ed, pts } = orientedEdge(chain[i]);
+    if (!ed || !pts) continue;
+    const cls = segClass(ed), col = SEG_COL[cls];
+    const len = ed.length_mm > 0 ? ed.length_mm : chordLen(ed.polyline);
+    const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),
+      Math.min(120, Math.max(2, pts.length)), 0.95, 10, false);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color:col, emissive:col,
+      emissiveIntensity:.85, roughness:.35, transparent:true, opacity:0 }));
+    mesh.userData = { kind:'cath', seg:i+1, cls, length:len, radius:ed.mean_radius_mm, tort:ed.tortuosity };  // clickable → explains its difficulty
+    groups.cath.add(mesh); S.tubes.push(mesh);
+    hopStats.push({ n:i+1, cls, length:len, radius: ed.mean_radius_mm, tort: ed.tortuosity });
+  }
+
+  // fallback for a graph with no per-edge chain: one smooth gold tube from routes[0]/stitch
+  if (!S.tubes.length){
+    let pts = null;
+    if (routes && routes.length && routes[0].route_points && routes[0].route_points.length >= 2)
+      pts = routes[0].route_points.map(p => new THREE.Vector3(p[0],p[1],p[2]));
+    else if (chain.length) pts = stitchPath(chain);
+    if (pts && pts.length >= 2){
+      const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), Math.min(600, pts.length*2), 0.95, 12, false);
+      const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color:0xffe34a, emissive:0xffe34a,
+        emissiveIntensity:.9, roughness:.3, transparent:true, opacity:0 }));
+      groups.cath.add(mesh); S.tubes.push(mesh);
+    }
+  }
+
+  // whole-path additive halo for glow continuity across the coloured segments
+  let haloPts = null;
+  if (routes && routes.length && routes[0].route_points && routes[0].route_points.length >= 2)
+    haloPts = routes[0].route_points.map(p => new THREE.Vector3(p[0],p[1],p[2]));
+  else if (chain.length) haloPts = stitchPath(chain);
+  if (haloPts && haloPts.length >= 2){
+    const curve = new THREE.CatmullRomCurve3(haloPts), seg = Math.min(600, haloPts.length*2);
+    S.halo = new THREE.Mesh(new THREE.TubeGeometry(curve, seg, 2.0, 10, false),
+      new THREE.MeshBasicMaterial({ color:0xffd21f, transparent:true, opacity:0,
+        blending:THREE.AdditiveBlending, depthWrite:false }));
+    S.halo.userData.kind = 'halo';   // excluded from picking (fat additive glow would swallow segment clicks)
+    groups.cath.add(S.halo);
+  }
+
+  const drew = S.tubes.length > 0;
+  S.tubeT0 = performance.now();
+  if (!drew) S.phase = 'done';
+
+  // numbered hop pins on the 3D + a neck landing-zone marker
+  clearRouteLabels();
+  for (let i = 0; i < chain.length - 1; i++){                 // last node = landing zone (below)
+    const np = pathfind.nodes.get(chain[i].to)?.pos; if (!np) continue;
+    routeLabels.push({ p:new THREE.Vector3(np[0],np[1],np[2]), el: mkRouteLabel(String(i+1), 'pin') });
+  }
+  const tp = pathfind.nodes.get(pathfind.target)?.pos;
+  if (tp){
+    const p = new THREE.Vector3(tp[0],tp[1],tp[2]);
+    const marker = new THREE.Mesh(new THREE.SphereGeometry(1.1,16,16),
+      new THREE.MeshStandardMaterial({ color:0xffd21f, emissive:0xffd21f, emissiveIntensity:1.1 }));
+    marker.position.copy(p); marker.userData = { kind:'landing', label:'Landing zone · neck' };
+    groups.cath.add(marker);
+    routeLabels.push({ p, el: mkRouteLabel('◎ landing zone · neck', 'land') });
+  }
+
+  // readouts: authoritative totals from catheter_paths.json when present
+  const r0 = (routes && routes[0]) || null;
+  const len = r0 ? r0.length_mm : S.res.totalDist;
+  const hops = r0 ? r0.n_hops : S.res.hops;
+  renderRoadmap(hopStats, len, hops, drew);
+  setCathStatus(drew ? '' : 'No feasible route to the aneurysm in this graph');
+
+  const b = cathBtn(); if (b){ b.disabled = false; b.classList.remove('searching'); b.textContent = 'RE-RUN SEARCH'; }
+  // camera intentionally stays at the whole-brain view set at search start — no dive-in on reveal
+}
+
+function animateSearch(){
+  if (!search) return;
+  const S = search, now = performance.now();
+
+  if (S.phase === 'explore'){
+    const n = S.order.length;
+    const STEP = Math.min(90, Math.max(16, 4200 / Math.max(1,n)));     // ~4.2s total, clamped per-edge
+    const want = Math.min(n, Math.floor((now - S.t0) / STEP));
+    for (; S.revealed < want; S.revealed++){
+      const ed = S.edges.get(S.order[S.revealed]); if (!ed) continue;
+      ed.mesh.visible = true; S.litAt.set(S.order[S.revealed], now);
+    }
+    for (const [id, ed] of S.edges){                                  // flash freshly-lit edges, settle the rest
+      if (!ed.mesh.visible) continue;
+      const f = Math.min(1, Math.max(0, (now - (S.litAt.get(id) ?? now)) / 400));
+      ed.mat.color.copy(COL_FLASH).lerp(COL_YELLOW, f);
+      ed.mat.opacity = 1.0 - 0.1 * f;                                 // flash 1.0 -> bright steady 0.9
+    }
+    setCathStatus('Searching… ' + Math.min(want,n) + '/' + n + ' segments explored');
+    if (want >= n){ S.phase = 'converge'; S.t0 = now; }
+    return;
+  }
+
+  if (S.phase === 'converge'){                                        // fade dead branches out, keep the winner
+    const f = Math.min(1, (now - S.t0) / 700);
+    for (const [id, ed] of S.edges){
+      if (!ed.mesh.visible) continue;
+      if (S.pathEdges.has(id)){ ed.mat.color.copy(COL_YELLOW).lerp(COL_GOLD, f); ed.mat.opacity = 0.9 + 0.1*f; }
+      else { ed.mat.opacity = 0.9 * (1 - f) + 0.05*f; }               // additive: fade out (can't gray)
+    }
+    if (f >= 1) startReveal(S);
+    return;
+  }
+
+  if (S.phase === 'reveal' && S.tubes){                               // fade the difficulty-coloured route (+glow) in
+    const f = Math.min(1, (now - S.tubeT0) / 500);
+    for (const t of S.tubes) t.material.opacity = f;
+    if (S.halo) S.halo.material.opacity = 0.4 * f;
+    if (f >= 1) S.phase = 'done';
+  }
+}
+
+// ── Aneurysm-sac detection: the "FIND ANEURYSM SAC" action ─────────────────────
+// A cinematic identify sequence faithful to pipeline/aneurysm_detect.py, which isolates the sac
+// as the wall region deviating > 2 mm beyond the local centerline radius. Three phases: scan the
+// vessel wall → lock onto the deviation → inflate the sac out of the tube. Ticked each frame by
+// animateSacDetect(); completion (finishSacDetect) unlocks every gated layer + the catheter route.
+const SAC_COL = 0xff9a3c;          // amber — matches the sac's solid material
+const SCAN_COL = 0x7fe4ff;         // cyan scan probe
+const SAC_DUR = { scan: 1150, detect: 620, inflate: 1300 };
+function sacStatus(t){ const el = document.getElementById('sacStatus'); if (el) el.textContent = t || ''; }
+
+// Dim + disable (locked=true) or restore (false) every gated control.
+function setGateLocked(locked){
+  for (const id of GATED){
+    const cb = document.getElementById(id); if (cb) cb.disabled = locked;
+    const row = document.getElementById('row-' + id); if (row) row.classList.toggle('locked', locked);
+  }
+  const cath = cathBtn(); if (cath) cath.disabled = locked;
+  const hint = document.getElementById('layerLockHint'); if (hint) hint.classList.toggle('hidden', !locked);
+}
+
+// (Re)lock the sac + every gated layer on case load — only the vessel tree + brain context show.
+function resetSacGate(){
+  sacDetected = false; sacScan = null;
+  groups.aneurysm.visible = false;
+  for (const id of GATED){ const name = GROUP_OF[id]; if (name && groups[name]) groups[name].visible = false; }
+  hotspots.forEach(h => { if (h.el) h.el.style.display = 'none'; });
+  setGateLocked(true);
+  const b = document.getElementById('findSacBtn'); if (b){ b.disabled = false; b.classList.remove('searching'); b.textContent = 'FIND ANEURYSM SAC'; }
+  const sc = document.getElementById('sacCallout'); if (sc) sc.style.display = 'none';
+  sacStatus('');
+}
+
+// Sac center / radius / neck-pivot from the loaded geometry (works even while the group is hidden).
+function sacGeom(){
+  const box = new THREE.Box3().setFromObject(groups.aneurysm);
+  if (box.isEmpty()) return null;
+  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+  const r = Math.max(0.5 * Math.max(s.x, s.y, s.z), 1);
+  const neck = (highlightRegistry.neck && highlightRegistry.neck.position)   // scale-anchor: neck stays put, dome balloons out
+             ? highlightRegistry.neck.position.clone() : c.clone();
+  return { c, r, neck };
+}
+
+function findAneurysmSac(force){
+  if (sacScan) return;                                              // already detecting
+  if (sacDetected && !force){ focusAneurysmNow(); return; }         // already found — re-frame, don't replay (button passes force)
+  if (!groups.aneurysm.children.length){ sacStatus('no aneurysm mesh for this case'); return; }
+  const G = sacGeom(); if (!G) return;
+
+  // scan path: trace the vessel centerline entry→sac, else the catheter route, else a straight probe.
+  let pts = null;
+  if (pathfind && pathfind.ready){ try { pts = stitchPath(dijkstra(pathfind).chain); } catch(_){ pts = null; } }
+  if ((!pts || pts.length < 2) && pathfind && pathfind.routes && pathfind.routes[0] && pathfind.routes[0].route_points)
+    pts = pathfind.routes[0].route_points.map(p => new THREE.Vector3(p[0],p[1],p[2]));
+  if (!pts || pts.length < 2) pts = [ G.c.clone().add(new THREE.Vector3(-G.r*6, G.r*2, G.r*4)), G.c.clone() ];
+  if (pts[pts.length-1].distanceToSquared(G.c) > 1) pts.push(G.c.clone());   // always end on the sac
+
+  const cum = [0]; for (let i=1;i<pts.length;i++) cum.push(cum[i-1] + pts[i].distanceTo(pts[i-1]));
+  const total = Math.max(1e-3, cum[cum.length-1]);
+
+  const temps = [];
+  const trail = addGlow(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),
+    Math.min(240, Math.max(2, pts.length*2)), 0.35, 6, false), null, SCAN_COL);
+  const probe = addGlow(new THREE.SphereGeometry(G.r*0.5 + 0.6, 16, 16), pts[0], SCAN_COL);
+  temps.push(trail, probe);
+
+  groups.aneurysm.visible = false;                                  // collapse the sac so it can inflate outward
+  aneurysmMeshes.forEach(m => { if (m.material && 'emissiveIntensity' in m.material) m.material.emissiveIntensity = 0.35; });
+  const b = document.getElementById('findSacBtn'); if (b){ b.disabled = true; b.classList.add('searching'); b.textContent = 'DETECTING…'; }
+  sacScan = { phase:'scan', t0: performance.now(), pts, cum, total, G, temps, trail, probe, halo:null };
+}
+
+const _sv = new THREE.Vector3();
+function _pointOnPath(S, dist){                                     // world point at arc-length `dist`
+  const cum = S.cum, pts = S.pts;
+  let j = 1; while (j < cum.length-1 && cum[j] < dist) j++;
+  const seg = Math.max(1e-6, cum[j] - cum[j-1]);
+  const f = Math.max(0, Math.min(1, (dist - cum[j-1]) / seg));
+  return _sv.copy(pts[j-1]).lerp(pts[j], f);
+}
+function easeOutBack(x){ const c1 = 1.70158, c3 = c1 + 1; return 1 + c3*Math.pow(x-1,3) + c1*Math.pow(x-1,2); }
+
+function animateSacDetect(){
+  if (!sacScan) return;
+  const S = sacScan, now = performance.now();
+
+  if (S.phase === 'scan'){                                          // probe travels the vessel toward the sac
+    const f = Math.min(1, (now - S.t0) / SAC_DUR.scan), e = f*f*(3-2*f);
+    S.probe.position.copy(_pointOnPath(S, e * S.total));
+    S.probe.material.opacity = 0.9;
+    S.trail.material.opacity = 0.32 * e;
+    sacStatus('Scanning vessel wall… ' + Math.round(f*100) + '%');
+    if (f >= 1){ S.phase = 'detect'; S.t0 = now; S.halo = makeHalo(S.G.c, S.G.r * 0.95, SAC_COL, false); }
+    return;
+  }
+
+  if (S.phase === 'detect'){                                        // reticle contracts + locks onto the bulge
+    const f = Math.min(1, (now - S.t0) / SAC_DUR.detect), ring = 2.4 - 1.4 * f;
+    S.halo.forEach(o => { o.scale.setScalar(ring); o.material.opacity = 0.9 * (0.4 + 0.6*Math.sin(f*Math.PI));
+      if (o.geometry.type === 'TorusGeometry') o.quaternion.copy(camera.quaternion); });
+    S.probe.material.opacity = 0.9 * (1 - f);
+    sacStatus('Wall deviation > 2 mm — sac isolated');
+    if (f >= 1){ S.phase = 'inflate'; S.t0 = now; groups.aneurysm.visible = true; focusAneurysmNow(); }
+    return;
+  }
+
+  if (S.phase === 'inflate'){                                       // the sac balloons out of the tube (neck fixed)
+    const f = Math.min(1, (now - S.t0) / SAC_DUR.inflate);
+    const s = 0.12 + (1 - 0.12) * easeOutBack(f);
+    groups.aneurysm.scale.setScalar(s);
+    groups.aneurysm.position.set(S.G.neck.x*(1-s), S.G.neck.y*(1-s), S.G.neck.z*(1-s));
+    const glow = 0.35 + Math.sin(Math.min(1,f)*Math.PI) * 1.05;     // emissive throb, peaks mid-inflate
+    aneurysmMeshes.forEach(m => { if (m.material && 'emissiveIntensity' in m.material) m.material.emissiveIntensity = glow; });
+    if (S.halo) S.halo.forEach(o => { o.material.opacity = 0.6 * (1 - f); });
+    if (f >= 1){
+      groups.aneurysm.scale.setScalar(1); groups.aneurysm.position.set(0,0,0);
+      aneurysmMeshes.forEach(m => { if (m.material && 'emissiveIntensity' in m.material) m.material.emissiveIntensity = 0.5; });
+      finishSacDetect();
+    }
+  }
+}
+
+function finishSacDetect(){
+  if (sacScan){                                                     // dispose the scan/reticle temporaries
+    sacScan.temps.forEach(o => { groups.hl.remove(o); o.geometry.dispose(); o.material.dispose(); });
+    if (sacScan.halo) sacScan.halo.forEach(o => { groups.hl.remove(o); o.geometry.dispose(); o.material.dispose(); });
+  }
+  sacScan = null; sacDetected = true;
+  groups.aneurysm.visible = true;
+  setGateLocked(false);
+  const b = document.getElementById('findSacBtn'); if (b){ b.disabled = false; b.classList.remove('searching'); b.textContent = 'RE-RUN DETECTION'; }
+  sacStatus(morphNow ? ('Sac isolated · Ø ' + morphNow.maxD + ' mm · AR ' + morphNow.ar) : 'Aneurysm sac isolated');
+
+  // the analysis layers that are on by default now light up (staggered) — earned by detection
+  const cascade = [['t-graph',0],['t-wsspt',220],['t-stream',440]];
+  for (const [id, delay] of cascade){
+    const cb = document.getElementById(id); if (!cb || !cb.checked) continue;
+    const name = GROUP_OF[id]; if (!name) continue;
+    groups[name].visible = true; beginReveal(name, { delay });
+    if (name === 'wss') hotspots.forEach(h => { if (h.el) h.el.style.display = 'block'; });
+  }
+
+  const q = pendingAfterSac.splice(0); q.forEach(fn => { try { fn(); } catch(_){} });   // "detect first, then show"
+  try { parent.postMessage({ type:'sacDetected', case: sel.value }, '*'); } catch(_){}
+}
+
+// Floating measurement callout that tracks the sac (during inflate + after detection).
+function updateSacCallout(){
+  const el = document.getElementById('sacCallout'); if (!el) return;
+  const showing = (sacDetected || (sacScan && sacScan.phase === 'inflate')) && groups.aneurysm.visible && morphNow;
+  if (!showing){ el.style.display = 'none'; return; }
+  const box = new THREE.Box3().setFromObject(groups.aneurysm);
+  if (box.isEmpty()){ el.style.display = 'none'; return; }
+  const top = box.getCenter(new THREE.Vector3()); top.y = box.max.y;    // pin just above the dome
+  const v = top.project(camera);
+  if (v.z > 1){ el.style.display = 'none'; return; }
+  el.textContent = 'Aneurysm sac · Ø ' + morphNow.maxD + ' mm · neck ' + morphNow.neck + ' mm · AR ' + morphNow.ar;
+  el.style.display = 'block';
+  el.style.left = ((v.x*0.5+0.5)*innerWidth) + 'px';
+  el.style.top  = ((-v.y*0.5+0.5)*innerHeight) + 'px';
+}
+
+// ── Named-element highlight: agent-driven flash + click-to-inspect ─────────────
+// One registry (built per case in loadCase) maps the agent vocab to anchors; one renderer
+// (highlightElement) is shared by the postMessage bridge and the raycaster. Pulses live in
+// activeHighlights[] and decay in animateHighlights() (called from tick()). Additive-glow
+// recipe is the same one the catheter route uses (MeshBasicMaterial + AdditiveBlending).
+const HL_DUR = 2600, HL_HZ = 2.2, HL_COLOR = 0xffe34a;   // ~0.45s pulse period, gold
+function addGlow(geometry, position, color){
+  const o = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color, transparent:true,
+    opacity:0, blending:THREE.AdditiveBlending, depthWrite:false }));
+  if (position) o.position.copy(position);
+  groups.hl.add(o); return o;
+}
+function makeHalo(pos, radius, color, withCore){
+  const objs = [ addGlow(new THREE.TorusGeometry(radius*1.9, radius*0.26, 10, 30), pos, color) ];
+  if (withCore) objs.push(addGlow(new THREE.SphereGeometry(radius*0.85, 16, 16), pos, color));  // point anchors have no mesh
+  return objs;
+}
+function makeEdgeHalos(polylines, color){
+  const objs = [];
+  for (const P of (polylines||[])){
+    if (!P || P.length < 2) continue;
+    const pts = P.map(p => new THREE.Vector3(p[0],p[1],p[2]));
+    objs.push(addGlow(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),
+      Math.min(120, Math.max(2, pts.length)), 1.1, 8, false), null, color));
+  }
+  return objs;
+}
+function highlightElement(entry, opts){
+  if (!entry) return;                                    // unknown/unresolved id -> graceful no-op
+  const color = (opts && opts.color) || HL_COLOR, dur = (opts && opts.dur) || HL_DUR;
+  const existing = activeHighlights.find(h => h.key === entry.label);
+  if (existing){ existing.t0 = performance.now(); return; }   // re-fire refreshes rather than stacks
+  // Only graph-node spheres get an emissive boost — their materials are per-node instances.
+  // The sac is halo-only (applyWss() swaps its material, which would strand a boost).
+  const meshes = entry.kind === 'node' ? (entry.object ? [entry.object] : (entry.objects || [])) : [];
+  const base = meshes.map(m => (m.material && m.material.emissive) ? m.material.emissiveIntensity : null);
+  const halos = entry.kind === 'edges'
+    ? makeEdgeHalos(entry.polylines, color)
+    : makeHalo(entry.position, entry.radius || 2, color, entry.kind === 'point');
+  activeHighlights.push({ key:entry.label, meshes, base, halos, t0:performance.now(), dur });
+}
+function highlightIds(ids, opts){
+  (ids || []).forEach(id => highlightElement(highlightRegistry[id], opts));   // unknown id -> no-op
+}
+function animateHighlights(){
+  if (!activeHighlights.length) return;
+  const now = performance.now();
+  for (let i = activeHighlights.length - 1; i >= 0; i--){
+    const h = activeHighlights[i], u = (now - h.t0) / h.dur;
+    if (u >= 1){                                         // expire: restore emissive + dispose halos
+      h.meshes.forEach((m,k) => { if (h.base[k]!=null && m.material && m.material.emissive) m.material.emissiveIntensity = h.base[k]; });
+      h.halos.forEach(o => { groups.hl.remove(o); o.geometry.dispose(); o.material.dispose(); });
+      activeHighlights.splice(i,1); continue;
+    }
+    const amt = (1 - u) * (0.5 + 0.5 * Math.sin((now - h.t0) * 0.001 * HL_HZ * 2 * Math.PI));
+    h.meshes.forEach((m,k) => { if (h.base[k]!=null && m.material && m.material.emissive)
+      m.material.emissiveIntensity = h.base[k] + (2.6 - h.base[k]) * amt; });
+    h.halos.forEach(o => { o.material.opacity = 0.85 * amt; o.scale.setScalar(1 + 0.22 * amt);
+      if (o.geometry.type === 'TorusGeometry') o.quaternion.copy(camera.quaternion); });   // billboard the ring
+  }
+}
+
+// Click-to-inspect: pointerdown/up threshold separates a click from an OrbitControls drag.
+const raycaster = new THREE.Raycaster();
+const _ndc = new THREE.Vector2();
+let _downX = 0, _downY = 0, _downT = 0;
+const _tipV = new THREE.Vector3();
+const tipEl = document.createElement('div');
+tipEl.style.cssText = 'position:absolute; transform:translate(-50%,-150%); padding:4px 8px; font-size:12px;'
+  + ' font-weight:700; color:#0a0d12; background:#ffe34a; border-radius:6px; white-space:nowrap;'
+  + ' box-shadow:0 2px 10px rgba(0,0,0,.45); display:none; pointer-events:none;';
+document.getElementById('wsslabels').appendChild(tipEl);
+let tipPos = null, tipHideAt = 0;
+function showTip(text, worldPos, opts){
+  opts = opts || {};
+  if (opts.sub) tipEl.innerHTML = `<b>${text}</b><br><span style="font-weight:500;opacity:.82">${opts.sub}</span>`;
+  else tipEl.textContent = text;
+  tipEl.style.whiteSpace = opts.sub ? 'normal' : 'nowrap';
+  tipEl.style.maxWidth = opts.sub ? '230px' : 'none';
+  tipEl.style.background = opts.color != null
+    ? (typeof opts.color === 'number' ? '#' + opts.color.toString(16).padStart(6,'0') : opts.color)
+    : '#ffe34a';
+  tipPos = worldPos.clone(); tipHideAt = performance.now() + HL_DUR; tipEl.style.display = 'block';
+}
+function updateTip(){
+  if (!tipPos) return;
+  if (performance.now() > tipHideAt){ tipEl.style.display = 'none'; tipPos = null; return; }
+  _tipV.copy(tipPos).project(camera);
+  if (_tipV.z > 1){ tipEl.style.display = 'none'; return; }
+  tipEl.style.display = 'block';
+  tipEl.style.left = ((_tipV.x*0.5+0.5)*innerWidth) + 'px';
+  tipEl.style.top  = ((-_tipV.y*0.5+0.5)*innerHeight) + 'px';
+}
+function pickAt(px, py){
+  _ndc.x = (px/innerWidth)*2 - 1; _ndc.y = -(py/innerHeight)*2 + 1;
+  raycaster.setFromCamera(_ndc, camera);
+  // precise pickables first, so a node/sac click lands THROUGH the translucent vessel wall
+  // (opacity/depthWrite don't affect raycast geometry — the wall still occludes geometrically).
+  const precise = [
+    ...groups.graph.children.filter(o => o.isMesh && o.userData.nodeId != null),
+    ...groups.cath.children.filter(o => o.isMesh && (o.userData.seg != null || o.userData.kind === 'landing')),
+    ...(groups.wss.visible ? groups.wss.children.filter(o => o.isMesh) : []),
+    ...groups.aneurysm.children.filter(o => o.isMesh),
+  ];
+  let hit = raycaster.intersectObjects(precise, false)[0];
+  if (!hit) hit = raycaster.intersectObjects(groups.vessel.children.filter(o => o.isMesh), false)[0];
+  if (!hit) return;
+  const ud = hit.object.userData || {};
+
+  // Catheter segment → flash it, explain WHY it's this colour, and sync the roadmap row.
+  if (ud.kind === 'cath'){
+    highlightElement({ kind:'node', object:hit.object, position:hit.point.clone(), radius:1.6, label:'Segment '+ud.seg });
+    const title = `Segment ${ud.seg} · ${SEG_LABEL[ud.cls]}` + (ud.cls === 'hard' ? ' ⚠' : '');
+    showTip(title, hit.point, { sub: segReason(ud), color: SEG_COL[ud.cls] });
+    flashRoadmapRow(ud.seg);
+    try { parent.postMessage({ type:'elementClicked', id:'cath_segment', seg:ud.seg, cls:ud.cls, label:title }, '*'); } catch(_){}
+    return;
+  }
+
+  const reg = ud.vocab && highlightRegistry[ud.vocab];
+  if (reg) highlightElement(reg);                        // known vocab -> the registered anchor
+  else highlightElement({                               // otherwise an ad-hoc highlight at the hit
+    kind: ud.nodeId != null ? 'node' : 'sac',
+    object: ud.nodeId != null ? hit.object : undefined,
+    position: hit.point.clone(),
+    radius: ud.nodeId != null ? (hit.object.scale.x || 1) : 3,
+    label: ud.label || 'Element' });
+  const label = (reg && reg.label) || ud.label || 'Element';
+  showTip(label, hit.point);
+  try { parent.postMessage({ type:'elementClicked', id: ud.vocab || null, nodeId: ud.nodeId ?? null, label }, '*'); } catch(_){}
+
+  // Clicking an entry node runs the full access roadmap (search → coloured route → panel).
+  if (ud.vocab === 'entry_node') findCatheterRoute();
+}
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  _downX = e.clientX; _downY = e.clientY; _downT = performance.now(); }, { passive:true });
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (Math.hypot(e.clientX-_downX, e.clientY-_downY) > 5 || performance.now()-_downT > 500) return;  // was a drag
+  pickAt(e.clientX, e.clientY); }, { passive:true });
+
+async function loadCase(name){
+  Object.values(groups).forEach(clear);
+  // Stay dark through the async load so nothing pops in at full opacity; the layers
+  // are revealed (faded + scaled in) only at the end via runIntroReveal().
+  ['brain','vessel','aneurysm','graph','stream','wss'].forEach(n => { groups[n].visible = false; });
+  aneurysmMeshes = [];
+  flow = { lines: [], geo: null, points: null, states: [], vmax: 1 };
+  pathfind = null; search = null; resetCathUI();   // back to the un-found state on every case load
+  sacDetected = false; sacScan = null; pendingAfterSac.length = 0; morphNow = null;  // re-gate the sac on every case load
+  highlightRegistry = {}; activeHighlights = [];   // clear(groups.hl) above already disposed spawned halos
+  thinking = false; fly = null; focusCenter = null; spinOut = false; focusK = 1.5;   // drop any copilot camera choreography from a prior case
+  hotspots.forEach(h => h.el && h.el.remove()); hotspots = []; aneurysmGeoWorld = null;
+  clearRouteLabels(); hideRoadmap();                // drop any prior catheter roadmap pins/readout
+  document.getElementById('morph').innerHTML = '—';
+  setStatus('loading ' + name + '…');
+  const base = `artifacts/case_${name}/`;
+  let box = new THREE.Box3(), gotGeom = false;
+
+  // occupancy grid of the vessel surface (world mm) -> cull graph nodes/edges/flow that
+  // stray outside the actual mesh (the hero graph was built from a denser segmentation than
+  // the cleaned vessel_tree.glb, so extra branches hung in empty space and flow followed them)
+  const vgrid = new Map(), VCELL = 6.0;
+  const vkey = (x,y,z) => Math.floor(x/VCELL)+'|'+Math.floor(y/VCELL)+'|'+Math.floor(z/VCELL);
+  const nearVessel = (x,y,z,tol) => {
+    if (!vgrid.size) return true;                 // no mesh (graph-only case) -> don't cull
+    const t2 = tol*tol, cx=Math.floor(x/VCELL), cy=Math.floor(y/VCELL), cz=Math.floor(z/VCELL);
+    for (let dx=-1;dx<=1;dx++) for (let dy=-1;dy<=1;dy++) for (let dz=-1;dz<=1;dz++){
+      const arr = vgrid.get((cx+dx)+'|'+(cy+dy)+'|'+(cz+dz)); if (!arr) continue;
+      for (const p of arr){ const d=(p[0]-x)**2+(p[1]-y)**2+(p[2]-z)**2; if (d<=t2) return true; }
+    }
+    return false;
+  };
+  const edgeNear = e => { const P=e.polyline||[]; if (P.length<2) return false;
+    const tol=(e.mean_radius_mm||1)+1.2; let ok=0;
+    for (const p of P) if (nearVessel(p[0],p[1],p[2],tol)) ok++;
+    return ok >= P.length*0.6; };
+  // surroundedness test: a node INSIDE a tube has surface all around it (dir-vectors to nearby
+  // surface cancel -> mean magnitude ~0); a node dangling past/outside a branch has surface on
+  // one side only (mean ~1) or none. Cleanly separates real centerline nodes from strays.
+  let keptIds = new Set();
+  const nodeInside = (x,y,z,radius) => {
+    if (!vgrid.size) return true;
+    const tol=(radius||1)+2.0, t2=tol*tol;
+    const cx=Math.floor(x/VCELL), cy=Math.floor(y/VCELL), cz=Math.floor(z/VCELL);
+    let sx=0,sy=0,sz=0,cnt=0;
+    for (let dx=-1;dx<=1;dx++) for (let dy=-1;dy<=1;dy++) for (let dz=-1;dz<=1;dz++){
+      const arr=vgrid.get((cx+dx)+'|'+(cy+dy)+'|'+(cz+dz)); if(!arr) continue;
+      for (const p of arr){ const ax=p[0]-x,ay=p[1]-y,az=p[2]-z, d2=ax*ax+ay*ay+az*az;
+        if(d2<=t2 && d2>1e-6){ const d=Math.sqrt(d2); sx+=ax/d; sy+=ay/d; sz+=az/d; cnt++; } }
+    }
+    return cnt>=6 && Math.hypot(sx,sy,sz)/cnt < 0.70;
+  };
+
+  // vessel mesh (translucent so interior structures show)
+  try {
+    const g = await loadGLB(base + 'vessel_tree.glb');
+    g.scene.updateMatrixWorld(true);
+    g.scene.traverse(o => { if (o.isMesh) {
+      o.geometry.computeVertexNormals();          // trimesh GLB has no normals -> lighting=black
+      const pa = o.geometry.attributes.position, _v = new THREE.Vector3();
+      for (let i=0;i<pa.count;i++){ _v.fromBufferAttribute(pa,i).applyMatrix4(o.matrixWorld);
+        const k=vkey(_v.x,_v.y,_v.z); let a=vgrid.get(k); if(!a){a=[];vgrid.set(k,a);} a.push([_v.x,_v.y,_v.z]); }
+      o.material = new THREE.MeshStandardMaterial({ color:0xe0483a, emissive:0x3a0e08,
+        emissiveIntensity:.35, transparent:true, opacity:.34, roughness:.5, metalness:.05,
+        side:THREE.DoubleSide, depthWrite:false });   // translucent deep-red vessels: flow reads through the walls
+      const vm = o.clone(); vm.userData.kind = 'vessel'; vm.userData.label = 'Vessel';   // so a click reports "Vessel", not the sac
+      groups.vessel.add(vm);
+    }});
+    box.expandByObject(groups.vessel); gotGeom = true;
+  } catch(e){ /* some cases have no geometry */ }
+
+  // translucent brain hull for anatomical context (only the hero case ships brain.glb)
+  try {
+    const g = await loadGLB(base + 'brain.glb');
+    g.scene.traverse(o => { if (o.isMesh) {
+      o.geometry.computeVertexNormals();
+      const mesh = o.clone();
+      mesh.material = new THREE.MeshStandardMaterial({ color:0x9fb4d8, emissive:0x141c28,
+        emissiveIntensity:.2, transparent:true, opacity:.12, roughness:.9, metalness:0,
+        side:THREE.BackSide, depthWrite:false });
+      groups.brain.add(mesh);
+    }});
+  } catch(e){}
+
+  // aneurysm sac (highlighted)
+  try {
+    const g = await loadGLB(base + 'aneurysm.glb');
+    g.scene.traverse(o => { if (o.isMesh) {
+      o.geometry.computeVertexNormals();
+      aneurysmGeoWorld = { pos: o.geometry.attributes.position.array, count: o.geometry.attributes.position.count };
+      const mesh = o.clone();
+      mesh.userData.kind = 'sac'; mesh.userData.label = 'Aneurysm sac';
+      mesh.userData.solid = new THREE.MeshStandardMaterial({ color:0xff9a3c, emissive:0xf28c26,
+        emissiveIntensity:.35, roughness:.4, metalness:.05, side:THREE.DoubleSide });  // amber sac (pops on the red tree)
+      mesh.userData.heat = new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.45,
+        metalness:.0, side:THREE.DoubleSide });   // baked COLOR_0 per-vertex WSS
+      groups.aneurysm.add(mesh); aneurysmMeshes.push(mesh);
+    }});
+    box.expandByObject(groups.aneurysm); gotGeom = true;
+  } catch(e){}
+
+  // per-vertex WSS -> legend range + peak(neck)/low-shear(dome) hotspot markers with tracked labels
+  try {
+    const w = await fetchJSON(base + 'wss.json');
+    document.getElementById('wssrange').textContent = `${w.min_wss_pa}–${w.peak_wss_pa} Pa · ${w._tier}`;
+    const wss = w.per_vertex_wss_pa;
+    if (aneurysmGeoWorld && wss && wss.length === aneurysmGeoWorld.count) {
+      const P = aneurysmGeoWorld.pos, hex = c => '#' + c.toString(16).padStart(6,'0');
+      let pi = 0; for (let i=1;i<wss.length;i++) if (wss[i] > wss[pi]) pi = i;   // peak = neck/inflow
+      const thr = 0.4 * w.peak_wss_pa; let cx=0,cy=0,cz=0,cn=0;                  // low-shear = dome
+      for (let i=0;i<wss.length;i++) if (wss[i] < thr){ cx+=P[3*i]; cy+=P[3*i+1]; cz+=P[3*i+2]; cn++; }
+      const neckP = new THREE.Vector3(P[3*pi],P[3*pi+1],P[3*pi+2]);
+      // neck/dome are the only sub-sac anchors we can distinguish — register them for highlight
+      // (independent of the WSS-hotspots layer toggle, so the agent can flash them regardless).
+      highlightRegistry.neck = { kind:'point', position:neckP.clone(), radius:1.6,
+        label:`Neck · peak WSS ${w.peak_wss_pa} Pa` };
+      const specs = [{ p:neckP, color:0xff5a3c, vocab:'neck',
+        html:`<b>Peak WSS</b> ${w.peak_wss_pa} Pa<br><span style="opacity:.65">neck · inflow jet</span>` }];
+      if (cn){
+        const domeP = new THREE.Vector3(cx/cn,cy/cn,cz/cn);
+        highlightRegistry.aneurysm_dome = { kind:'point', position:domeP.clone(), radius:2.4,
+          label:`Dome · low-shear ~${Math.round(100*cn/wss.length)}% of sac` };
+        specs.push({ p:domeP, color:0x4aa3ff, vocab:'aneurysm_dome',
+          html:`<b>Low-shear</b> ~${Math.round(100*cn/wss.length)}% of sac<br><span style="opacity:.65">dome · recirculation</span>` });
+      }
+      specs.forEach((s) => {                         // marker dots only — no floating text tags
+        const marker = new THREE.Mesh(new THREE.SphereGeometry(0.7,14,14),
+          new THREE.MeshStandardMaterial({ color:s.color, emissive:s.color, emissiveIntensity:1.2 }));
+        marker.position.copy(s.p);
+        marker.userData.vocab = s.vocab;             // click reverse-lookup -> the neck/dome anchor
+        marker.userData.label = (highlightRegistry[s.vocab] && highlightRegistry[s.vocab].label) || s.vocab;
+        groups.wss.add(marker);
+      });
+    }
+  } catch(e){ document.getElementById('wssrange').textContent = ''; }
+
+  // centerline graph: node spheres + edge polylines
+  let graph = null;
+  try {
+    graph = await fetchJSON(base + 'graph.json');
+    keptIds = new Set();                            // graph nodes that actually sit inside the vessel mesh
+    for (const n of graph.nodes)
+      if (n.type==='aneurysm' || n.type==='entry' || nodeInside(n.pos[0],n.pos[1],n.pos[2],n.radius)) keptIds.add(n.id);
+    const edgeOk = e => keptIds.has(e.source) && keptIds.has(e.target) && edgeNear(e);
+    const edgeMat = new THREE.LineBasicMaterial({ color:0x5b6a7d, transparent:true, opacity:.6 });
+    for (const e of graph.edges) {
+      if (!edgeOk(e)) continue;                     // skip edges that leave the vessel mesh
+      const pts = e.polyline.map(p => new THREE.Vector3(p[0],p[1],p[2]));
+      groups.graph.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), edgeMat));
+    }
+    const sph = new THREE.SphereGeometry(1, 18, 18);
+    const nodeMeshById = new Map();
+    for (const n of graph.nodes) {
+      if (!keptIds.has(n.id)) continue;             // drop stray nodes
+      const key = n.type==='aneurysm' || n.type==='entry';
+      const col = TYPE_COLOR[n.type] ?? 0xffffff;
+      const m = new THREE.Mesh(sph, new THREE.MeshStandardMaterial({
+        color: col, emissive: col, emissiveIntensity: key ? .5 : .3,
+        roughness:.5, metalness:.0 }));                     // soft glow so light-blue nodes read through the translucent vessels
+      m.position.set(n.pos[0], n.pos[1], n.pos[2]);
+      const s = n.type==='aneurysm' ? 2.1 : n.type==='entry' ? 1.5 : n.type==='bifurcation' ? 0.7 : 0.45;
+      m.scale.setScalar(s);
+      m.userData.nodeId = n.id; m.userData.nodeType = n.type;   // tag for the registry + click reverse-lookup
+      m.userData.vocab = n.type==='aneurysm' ? 'aneurysm_node' : n.type==='entry' ? 'entry_node' : null;
+      m.userData.label = n.type==='aneurysm' ? 'Aneurysm node' : n.type==='entry' ? 'Entry node'
+                       : n.type==='bifurcation' ? 'Bifurcation' : 'Endpoint';
+      groups.graph.add(m); nodeMeshById.set(n.id, m);
+    }
+    if (!gotGeom) { box.expandByObject(groups.graph); gotGeom = true; }
+
+    // register the agent-addressable graph landmarks (aneurysm/entry nodes are force-kept above,
+    // so these resolve on every case with a graph; entry_node may map to several spheres).
+    const anMesh = nodeMeshById.get(graph.aneurysm_node);
+    if (anMesh) highlightRegistry.aneurysm_node =
+      { kind:'node', object:anMesh, position:anMesh.position.clone(), radius:anMesh.scale.x, label:'Aneurysm node' };
+    const entryMeshes = (graph.entry_nodes||[]).map(id=>nodeMeshById.get(id)).filter(Boolean);
+    if (entryMeshes.length) highlightRegistry.entry_node =
+      { kind:'node', objects:entryMeshes, position:entryMeshes[0].position.clone(), radius:entryMeshes[0].scale.x, label:'Entry node' };
+
+    // capture the kept subgraph so the "FIND CATHETER ROUTE" button can run a live search over it
+    const keptEdges = graph.edges.filter(edgeOk);
+    const pfNodes = new Map(); for (const n of graph.nodes) pfNodes.set(n.id, { pos:n.pos, type:n.type });
+    const adj = new Map();
+    const addDir = (a,b,e) => { if(!adj.has(a)) adj.set(a,[]);
+      adj.get(a).push({ to:b, edgeId:e.id, len:(e.length_mm>0 ? e.length_mm : chordLen(e.polyline)), edge:e }); };
+    for (const e of keptEdges){ addDir(e.source,e.target,e); addDir(e.target,e.source,e); }   // undirected
+    pathfind = { nodes:pfNodes, adj, keptEdges,
+      entries:(graph.entry_nodes||[]).filter(id=>keptIds.has(id)),
+      target: graph.aneurysm_node, routes:null, ready:true };
+
+    // parent_vessel = the centerline edge(s) incident to the aneurysm node (the feeding artery).
+    const incident = (adj.get(graph.aneurysm_node)||[]).map(a=>a.edge)
+      .filter(e => e && e.polyline && e.polyline.length>=2);
+    if (incident.length){
+      const mid = incident[0].polyline[Math.floor(incident[0].polyline.length/2)];
+      highlightRegistry.parent_vessel = { kind:'edges', polylines: incident.map(e=>e.polyline),
+        position:new THREE.Vector3(mid[0],mid[1],mid[2]), radius:1.2, label:'Parent vessel' };
+    } else if (groups.vessel.children.length){        // fallback: a halo around the whole vessel tree
+      const vb = new THREE.Box3().setFromObject(groups.vessel);
+      const vs = vb.getSize(new THREE.Vector3());
+      highlightRegistry.parent_vessel = { kind:'point', position:vb.getCenter(new THREE.Vector3()),
+        radius:Math.max(vs.x,vs.y,vs.z)*0.5, label:'Vessel tree' };
+    }
+  } catch(e){}
+
+  // hemodynamic flow: BLOOD — dense soft glowing particles streaming along the paths (additive)
+  try {
+    const s = await fetchJSON(base + 'streamlines.json');
+    let vmax = 1e-6; s.streamlines.forEach(l => (l.speed||[]).forEach(v => vmax = Math.max(vmax,v)));
+    flow.vmax = vmax;
+    const pos = [], col = [];
+    for (const l of s.streamlines) {
+      const P = l.points, spd = l.speed || P.map(()=>0), cum = [0];
+      for (let i=1;i<P.length;i++){
+        cum.push(cum[i-1] + Math.hypot(P[i][0]-P[i-1][0], P[i][1]-P[i-1][1], P[i][2]-P[i-1][2]));
+        const [r,g,b] = blood((spd[i-1]||0)/vmax);
+        pos.push(P[i-1][0],P[i-1][1],P[i-1][2], P[i][0],P[i][1],P[i][2]);
+        col.push(r,g,b, r,g,b);
+      }
+      const line = { P, spd, cum, total: cum[cum.length-1] };
+      if (line.total <= 0) continue;
+      flow.lines.push(line);
+      for (let k=0;k<50;k++) flow.states.push({ li: flow.lines.length-1, s: Math.random()*line.total });
+    }
+    // flow through the WHOLE vasculature, not just the entry->aneurysm streamlines
+    if (graph) {
+      const rmax = Math.max(1e-3, ...graph.edges.map(e => e.mean_radius_mm || 1));
+      for (const e of graph.edges) {
+        const P = e.polyline; if (!P || P.length < 2) continue;
+        if (!(keptIds.has(e.source) && keptIds.has(e.target) && edgeNear(e))) continue;   // no flow through edges that leave the mesh
+        const sp = 0.25 + 0.7 * (1 - (e.mean_radius_mm || 1) / rmax);   // narrow vessel = faster (proxy)
+        const spd = P.map(() => sp), cum = [0];
+        for (let i=1;i<P.length;i++) cum.push(cum[i-1] + Math.hypot(P[i][0]-P[i-1][0], P[i][1]-P[i-1][1], P[i][2]-P[i-1][2]));
+        const line = { P, spd, cum, total: cum[cum.length-1] };
+        if (line.total <= 0) continue;
+        flow.lines.push(line);
+        const dens = Math.max(2, Math.round(line.total / 4 * (0.5 + sp)));   // denser where WSS higher (narrow = high shear)
+        for (let k=0;k<dens;k++) flow.states.push({ li: flow.lines.length-1, s: Math.random()*line.total });
+      }
+    }
+    const glg = new THREE.BufferGeometry();
+    glg.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+    glg.setAttribute('color', new THREE.Float32BufferAttribute(col,3));
+    groups.stream.add(new THREE.LineSegments(glg, new THREE.LineBasicMaterial({ color:0xaa1030, transparent:true, opacity:.10 })));
+
+    const N = flow.states.length;
+    flow.geo = new THREE.BufferGeometry();
+    flow.geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(3*N), 3));
+    flow.geo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(3*N), 3));
+    flow.points = new THREE.Points(flow.geo, new THREE.PointsMaterial({
+      size: 2.6, map: SPRITE, vertexColors: true, transparent: true, opacity: 1.0,
+      depthWrite: false, blending: THREE.NormalBlending, sizeAttenuation: true }));
+    groups.stream.add(flow.points);
+  } catch(e){}
+
+  // precomputed catheter route(s): stashed, NOT drawn on load — the animated search reveals them
+  try {
+    const c = await fetchJSON(base + 'catheter_paths.json');
+    c.routes.sort((a,b)=>a.length_mm-b.length_mm);
+    if (pathfind) pathfind.routes = c.routes;   // primary = routes[0] (shortest) for the reveal
+  } catch(e){}
+
+  // morphology readout
+  try {
+    const m = await fetchJSON(base + 'morphology.json');
+    const g = m.geometry, h = m.hemodynamics, cl = m.clinical;
+    morphNow = { maxD: g.max_diameter_mm, neck: g.neck_width_mm, ar: g.aspect_ratio };  // for the sac callout
+    const flag = h._note ? `<div class="flag">⚠ ${h._note}</div>` : '';
+    document.getElementById('morph').innerHTML = `
+      <span class="k">location</span> <b>${g.location}</b> · <span class="k">rupture</span> <b>${cl.rupture_status}</b><br>
+      <span class="k">max Ø</span> <b>${g.max_diameter_mm}</b> mm · <span class="k">neck</span> <b>${g.neck_width_mm}</b> mm<br>
+      <span class="k">height</span> <b>${g.height_mm}</b> mm · <span class="k">AR</span> <b>${g.aspect_ratio}</b> · <span class="k">SR</span> <b>${g.size_ratio}</b><br>
+      <span class="k">peak WSS</span> <b>${h.peak_wss_pa}</b> Pa · <span class="k">OSI</span> <b>${h.osi_max}</b><br>
+      <span class="k">age/sex</span> <b>${cl.patient_age}/${cl.patient_sex}</b>${cl.phase_score!=null?` · <span class="k">PHASE</span> <b>${cl.phase_score}</b>`:''}
+      ${flag}`;
+  } catch(e){
+    const el = document.getElementById('morph');
+    if (!gotGeom) el.innerHTML = '<span class="flag">⚠ artifacts didn\'t load — run '
+        + '<code>python -m http.server 8137</code> in the repo, then open '
+        + '<code>http://localhost:8137/viewer.html</code> (the GLB/JSON files must be served).</span>';
+    else if (name.startsWith('LAUSANNE')) el.innerHTML = '<span class="k">TOF-MRA reconstruction '
+        + 'showcase — whole-brain vessel tree from a raw scan. No aneurysm case by design.</span>';
+    else el.innerHTML = '<span class="k">no morphology.json for this case</span>';
+  }
+
+  // scale depth/fog/zoom-limits to the full scene (incl. the brain hull) so zooming out never darkens
+  const fullBox = new THREE.Box3();
+  for (const g of ['brain','vessel','aneurysm','graph','cath'])
+    if (groups[g].children.length) fullBox.expandByObject(groups[g]);
+  configureDepth(fullBox);
+  buildGrid(fullBox);                                // green scale-fabric floor the model rests on
+  if (gotGeom && !box.isEmpty()) frame(box);
+  applyToggles();
+  applyWss();
+  resetSacGate();                                    // hide sac + gated layers, lock their controls until detection
+  runIntroReveal();                                  // cinematic reveal: vessel forms first, rest cascade in
+  const counts = [];
+  if (groups.vessel.children.length) counts.push('vessel');
+  if (groups.aneurysm.children.length) counts.push('aneurysm');
+  if (graph) counts.push(`${graph.nodes.length}-node graph`);
+  if (groups.cath.children.length) counts.push(`${groups.cath.children.length} route(s)`);
+  setStatus(name + ' · ' + (counts.join(' · ') || 'morphology only'));
+}
+
+function applyToggles(){
+  groups.brain.visible    = document.getElementById('t-brain').checked;
+  groups.vessel.visible   = document.getElementById('t-vessel').checked;
+  groups.aneurysm.visible = sacDetected;    // sac appears only once detection has run
+  groups.graph.visible    = document.getElementById('t-graph').checked;
+  groups.stream.visible   = document.getElementById('t-stream').checked;
+  groups.wss.visible      = document.getElementById('t-wsspt').checked;
+  groups.grid.visible     = document.getElementById('t-grid').checked;
+  hotspots.forEach(h => { h.el.style.display = groups.wss.visible ? 'block' : 'none'; });
+}
+// ── Reveal system: fade + gentle scale a layer group "into existence" ──────────
+// Generalizes the catheter reveal (opacity 0→1 + scale, ticked from the render loop)
+// to every layer, so each metric can be brought to life — on load or on toggle.
+// NB: no 't-aneurysm' — the sac is driven by the FIND ANEURYSM SAC action, not a checkbox layer.
+const GROUP_OF = { 't-brain':'brain', 't-vessel':'vessel',
+                   't-graph':'graph', 't-stream':'stream', 't-wsspt':'wss', 't-grid':'grid' };
+const reveals = new Map();                      // groupName -> { t0, dur, cx, cy, cz }
+const REVEAL_S0 = 0.72;                          // start scale for the grow-in (smaller = more dramatic materialization)
+const _revBox = new THREE.Box3(), _revC = new THREE.Vector3();
+function beginReveal(name, opts){
+  const g = groups[name]; if (!g || !g.children.length) return;
+  opts = opts || {};
+  const dur = opts.dur || 1050, delay = opts.delay || 0;
+  g.visible = true;
+  g.scale.setScalar(1); g.position.set(0,0,0);          // identity so the bbox centroid is true
+  _revBox.setFromObject(g);
+  _revBox.isEmpty() ? _revC.set(0,0,0) : _revBox.getCenter(_revC);
+  g.traverse(o => {
+    const mm = o.material; if (!mm) return;
+    for (const mt of (Array.isArray(mm) ? mm : [mm])){
+      if (mt.userData._revBase === undefined){ mt.userData._revBase = (mt.opacity ?? 1); mt.userData._revTrans = !!mt.transparent; }
+      mt.transparent = true; mt.opacity = 0;
+    }
+  });
+  const s0 = opts.scaleFrom ?? REVEAL_S0;                // scale about the centroid as it grows in (scaleFrom:1 = opacity-only, for the big brain hull)
+  g.scale.setScalar(s0); g.position.set(_revC.x*(1-s0), _revC.y*(1-s0), _revC.z*(1-s0));
+  reveals.set(name, { t0: performance.now() + delay, dur, cx:_revC.x, cy:_revC.y, cz:_revC.z, s0 });
+}
+function _restoreReveal(name){                            // snap a group back to its settled state
+  const g = groups[name];
+  if (g){
+    g.scale.setScalar(1); g.position.set(0,0,0);
+    g.traverse(o => { const mm=o.material; if(!mm) return;
+      for (const mt of (Array.isArray(mm)?mm:[mm])){ mt.opacity = (mt.userData._revBase ?? 1); mt.transparent = (mt.userData._revTrans ?? mt.transparent); } });
+  }
+  reveals.delete(name);
+}
+function animateReveals(){
+  if (!reveals.size) return;
+  const now = performance.now();
+  for (const [name, R] of reveals){
+    if (now < R.t0) continue;                            // still inside its stagger delay
+    const g = groups[name]; if (!g){ reveals.delete(name); continue; }
+    const f = Math.min(1, (now - R.t0) / R.dur);
+    const e = f*f*(3-2*f);                               // smoothstep ease
+    const s = R.s0 + (1 - R.s0)*e;
+    g.scale.setScalar(s); g.position.set(R.cx*(1-s), R.cy*(1-s), R.cz*(1-s));
+    g.traverse(o => { const mm=o.material; if(!mm) return;
+      for (const mt of (Array.isArray(mm)?mm:[mm])) mt.opacity = (mt.userData._revBase ?? 1) * e; });
+    if (f >= 1) _restoreReveal(name);
+  }
+}
+// Cinematic on-load cascade: the vessel tree forms first, then the rest stream in.
+// [name, delay, dur, scaleFrom?] — brain hull comes last: a slow, opacity-only fade once everything else is in.
+const INTRO_SEQ = [['vessel',0,1600],['aneurysm',1400,1200],['graph',2400,1050],['wss',3300,900],['stream',4000,1300],['brain',5400,2000,1]];
+function runIntroReveal(){
+  for (const [name, delay, dur, scaleFrom] of INTRO_SEQ){
+    if (!groups[name].visible) continue;                 // respect layers that are toggled off
+    beginReveal(name, { delay, dur, scaleFrom });
+  }
+}
+// A layer checkbox (or an agent setLayer message) brings its metric to life, animated.
+function onLayerToggle(id){
+  if (GATED.has(id) && document.getElementById(id).checked && !sacDetected){   // gate: find the sac first, then show
+    document.getElementById(id).checked = false;
+    pendingAfterSac.push(() => _setLayer(id, true)); findAneurysmSac(); return;
+  }
+  const name = GROUP_OF[id]; if (!name) return;
+  const on = document.getElementById(id).checked;
+  if (on) beginReveal(name);
+  else { _restoreReveal(name); groups[name].visible = false; }
+  if (name === 'wss') hotspots.forEach(h => { h.el.style.display = on ? 'block' : 'none'; });
+}
+Object.keys(GROUP_OF).forEach(id =>
+  document.getElementById(id).addEventListener('change', () => onLayerToggle(id)));
+
+function applyWss(){
+  if (document.getElementById('t-wss').checked && !sacDetected){    // gate: WSS heatmap needs the sac found first
+    document.getElementById('t-wss').checked = false;
+    pendingAfterSac.push(() => _setWss(true)); findAneurysmSac(); return;
+  }
+  const on = document.getElementById('t-wss').checked;
+  aneurysmMeshes.forEach(m => { m.material = on ? m.userData.heat : m.userData.solid; });
+  document.getElementById('wsslegend').style.display = on ? 'block' : 'none';
+}
+document.getElementById('t-wss').addEventListener('change', applyWss);
+
+const sel = document.getElementById('caseSel');
+CASES.forEach(c => { const o = document.createElement('option'); o.value=o.textContent=c; sel.appendChild(o); });
+sel.addEventListener('change', () => loadCase(sel.value));
+document.getElementById('resetBtn').onclick = () => loadCase(sel.value);
+document.getElementById('findCathBtn').onclick = () => findCatheterRoute();
+document.getElementById('findSacBtn').onclick = () => findAneurysmSac(true);   // button forces a replay
+document.getElementById('spinBtn').onclick = () => {
+  if (spinOut || manualSpin){ spinOut = false; manualSpin = false; }   // currently rotating (idle spin or manual) → stop
+  else { manualSpin = true; }                                          // otherwise start manual auto-rotate
+  applyAutoRotate();
+};
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  controls.handleResize();                          // TrackballControls caches the canvas rect
+});
+function animateFlow(){
+  if (!flow.points || !groups.stream.visible) return;
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = performance.now() * 0.001;
+  const surge = Math.max(0, Math.sin(t * 2 * Math.PI * 1.1));   // ~1.1 Hz cardiac cycle
+  const pulse = 0.5 + 0.85 * surge;                       // speed surge
+  const br = 0.72 + 0.32 * surge;                         // brightness pump (systole = brighter), floor keeps flow visible in diastole
+  const SPEED = 55;                                        // mm/s at normalized speed 1
+  const posA = flow.geo.attributes.position.array, colA = flow.geo.attributes.color.array;
+  for (let i=0;i<flow.states.length;i++){
+    const st = flow.states[i], L = flow.lines[st.li];
+    let j = 1; while (j < L.cum.length-1 && L.cum[j] < st.s) j++;
+    const j0 = j-1, seg = Math.max(1e-6, L.cum[j]-L.cum[j0]);
+    const f = Math.max(0, Math.min(1, (st.s - L.cum[j0]) / seg));
+    const spd = L.spd[j0]*(1-f) + (L.spd[j]||0)*f;
+    const P0 = L.P[j0], P1 = L.P[j];
+    posA[3*i]   = P0[0]*(1-f)+P1[0]*f;
+    posA[3*i+1] = P0[1]*(1-f)+P1[1]*f;
+    posA[3*i+2] = P0[2]*(1-f)+P1[2]*f;
+    const c = blood(spd / flow.vmax); colA[3*i]=c[0]*br; colA[3*i+1]=c[1]*br; colA[3*i+2]=c[2]*br;
+    st.s += (0.08 + spd) * SPEED * pulse * dt;             // advance; slow floor so it never stalls
+    if (st.s > L.total) st.s -= L.total;                  // loop
+  }
+  flow.geo.attributes.position.needsUpdate = true;
+  flow.geo.attributes.color.needsUpdate = true;
+}
+const _v = new THREE.Vector3();
+function updateLabels(){
+  if (!groups.wss.visible || !hotspots.length) return;
+  for (const hs of hotspots){
+    _v.copy(hs.p).project(camera);
+    const behind = _v.z > 1;
+    hs.el.style.display = behind ? 'none' : 'block';
+    if (behind) continue;
+    hs.el.style.left = ((_v.x*0.5+0.5)*innerWidth) + 'px';
+    hs.el.style.top  = ((-_v.y*0.5+0.5)*innerHeight) + 'px';
+  }
+}
+function updateRouteLabels(){                         // project catheter hop pins / landing label to screen
+  if (!routeLabels.length) return;
+  const show = groups.cath.visible;
+  for (const rl of routeLabels){
+    if (!show){ rl.el.style.display = 'none'; continue; }
+    _v.copy(rl.p).project(camera);
+    if (_v.z > 1){ rl.el.style.display = 'none'; continue; }
+    rl.el.style.display = 'block';
+    rl.el.style.left = ((_v.x*0.5+0.5)*innerWidth) + 'px';
+    rl.el.style.top  = ((-_v.y*0.5+0.5)*innerHeight) + 'px';
+  }
+}
+(function tick(){ requestAnimationFrame(tick); animateFlow(); animateSearch(); animateSacDetect(); animateReveals(); animateHighlights(); stepCamera(); controls.update(); renderer.render(scene, camera); updateLabels(); updateRouteLabels(); updateSacCallout(); updateTip(); })();
+
+// ── External control bridge (embedded in the NeuroVas console iframe) ──────────
+// Rendering is untouched; this only adds a ?case= param + a postMessage API so the
+// copilot can focus the sac / toggle WSS·flow·catheter layers and stay case-synced.
+const _params = new URLSearchParams(location.search);
+const _embed = _params.get('embed') === '1';
+if (_embed) {
+  const s = document.getElementById('status'); if (s) s.style.display = 'none';
+  const h = document.getElementById('hint');   if (h) h.style.display = 'none';
+}
+// ── Control panel chrome: collapse toggle + drag-to-resize (persisted in embed) ─
+(function panelChrome(){
+  const panel = document.getElementById('panel');
+  const grip = document.getElementById('panelGrip');
+  const expandBtn = document.getElementById('panelExpand');
+  const toggleBtn = document.getElementById('panelToggle');
+  if (!panel || !grip || !expandBtn || !toggleBtn) return;
+  const PW = 'neurovas.panelW', PC = 'neurovas.panelCollapsed';
+  function setCollapsed(on){
+    panel.classList.toggle('collapsed', on);
+    expandBtn.style.display = on ? 'flex' : 'none';
+    try { if (_embed) localStorage.setItem(PC, on ? '1' : '0'); } catch(_){}
+  }
+  toggleBtn.onclick = () => setCollapsed(true);
+  expandBtn.onclick = () => setCollapsed(false);
+  grip.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); grip.setPointerCapture(e.pointerId);
+    const left = panel.getBoundingClientRect().left;
+    const onMove = (ev) => { panel.style.width = Math.min(460, Math.max(240, ev.clientX - left)) + 'px'; };
+    const onUp = () => {
+      grip.removeEventListener('pointermove', onMove);
+      grip.removeEventListener('pointerup', onUp);
+      try { if (_embed) localStorage.setItem(PW, parseInt(panel.style.width) || 288); } catch(_){}
+    };
+    grip.addEventListener('pointermove', onMove);
+    grip.addEventListener('pointerup', onUp);
+  });
+  if (_embed){
+    try {
+      const w = parseInt(localStorage.getItem(PW));
+      if (w) panel.style.width = Math.min(460, Math.max(240, w)) + 'px';
+      if (localStorage.getItem(PC) === '1') setCollapsed(true);
+    } catch(_){}
+  }
+})();
+function _setLayer(id, on){
+  // catheter is no longer a checkbox — legacy setLayer(t-cath) maps to the animated search
+  if (id === 't-cath'){ if (on) findCatheterRoute(); else { clear(groups.search); clear(groups.cath); clearRouteLabels(); hideRoadmap(); search = null; resetCathUI(); } return; }
+  if (GATED.has(id) && on && !sacDetected){ pendingAfterSac.push(() => _setLayer(id, true)); findAneurysmSac(); return; }  // detect first, then show
+  const el = document.getElementById(id); if (el){ el.checked = !!on; onLayerToggle(id); }   // animate the reveal, like a click
+}
+function _setWss(on){
+  if (on && !sacDetected){ pendingAfterSac.push(() => _setWss(true)); findAneurysmSac(); return; }   // detect first, then show
+  const el = document.getElementById('t-wss'); if (el){ el.checked = !!on; applyWss(); }
+}
+window.addEventListener('message', (e) => {
+  const m = e.data || {};
+  if (m.type === 'setCase' && m.case) { sel.value = m.case; loadCase(m.case); }
+  else if (m.type === 'focusAneurysm') focusAneurysm();
+  else if (m.type === 'findSac') findAneurysmSac();
+  else if (m.type === 'findCatheter') findCatheterRoute();
+  else if (m.type === 'setThinking'){ thinking = !!m.on; if (thinking){ spinOut = false; focusK = 1.5; } else if (!spinOut){ focusCenter = null; } applyAutoRotate(); }
+  else if (m.type === 'settle'){ flyOutSpin(); }
+  else if (m.type === 'setLayer') _setLayer(m.id, m.on);
+  else if (m.type === 'setWss') _setWss(m.on);
+  else if (m.type === 'highlight') highlightIds(m.elementIds);   // agent named-element flash (camera stays the director's job)
+  else if (m.type === 'highlightEvidence') _highlightEvidence(m.topic);
+  else if (m.type === 'reset') loadCase(sel.value);
+});
+// Map an evidence-graph node's topic to a geometry emphasis, reusing existing actions.
+function _highlightEvidence(topic){
+  const t = String(topic || '').toLowerCase();
+  if (t === 'wss' || t.includes('hemodynam')) { _setWss(true); focusAneurysm(); }
+  else if (t === 'access' || t === 'treatment' || t === 'endovascular') { findCatheterRoute(); }
+  else focusAneurysm(); // size / aspect_ratio / morphology / location / natural-history / …
+}
+// Tell the parent when the user switches case via the panel, so the copilot re-targets.
+sel.addEventListener('change', () => { try { parent.postMessage({ type: 'caseChanged', case: sel.value }, '*'); } catch (_) {} });
+
+const _initialCase = CASES.includes(_params.get('case')) ? _params.get('case') : 'HERO_sub013';
+sel.value = _initialCase;
+loadCase(_initialCase);
+try { parent.postMessage({ type: 'ready', case: _initialCase }, '*'); } catch (_) {}
+</script>
+</body>
+</html>

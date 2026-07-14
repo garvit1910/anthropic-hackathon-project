@@ -1,0 +1,23 @@
+{
+  "case_id": "LAUSANNE_ds003949_08",
+  "geometry": {
+    "max_diameter_mm": 4.1,
+    "height_mm": 4.08,
+    "neck_width_mm": 3.4,
+    "aspect_ratio": 1.2,
+    "size_ratio": 1.2,
+    "location": "PComm"
+  },
+  "hemodynamics": {
+    "peak_wss_pa": 14.6,
+    "mean_wss_pa": 3.9,
+    "osi_max": 0.235,
+    "low_shear_area_fraction": 0.27,
+    "_tier": "3-analytic-proxy",
+    "_note": "Poiseuille WSS from vessel radii; OSI & low-shear are analytic sac estimates, NOT a transient CFD solve. Suggestive, not decisive (WSS<->rupture is contested)."
+  },
+  "clinical": {
+    "rupture_status": "unruptured",
+    "_note": "Withheld from the model — get_morphology strips this block."
+  }
+}

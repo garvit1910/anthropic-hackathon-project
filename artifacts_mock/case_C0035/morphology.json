@@ -1,0 +1,22 @@
+{
+  "case_id": "C0035",
+  "geometry": {
+    "max_diameter_mm": 4.1,
+    "height_mm": 3.9,
+    "neck_width_mm": 2.8,
+    "aspect_ratio": 1.39,
+    "size_ratio": 2.3,
+    "location": "ICA"
+  },
+  "hemodynamics": {
+    "peak_wss_pa": 12.3,
+    "mean_wss_pa": 4.1,
+    "osi_max": 0.42,
+    "low_shear_area_fraction": 0.18
+  },
+  "clinical": {
+    "rupture_status": "unruptured",
+    "patient_age": 55,
+    "patient_sex": "F"
+  }
+}

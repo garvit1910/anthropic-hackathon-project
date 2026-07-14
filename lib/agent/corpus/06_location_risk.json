@@ -1,0 +1,62 @@
+{
+  "corpus_file": "location_risk",
+  "description": "Anatomical location as a rupture risk factor. The cohorts broadly agree on AComm/PComm as high risk, but disagree on the ICA/MCA ordering - which matters directly for any ICA or MCA case.",
+  "chunks": [
+    {
+      "text": "Aneurysm location is an independent rupture risk factor in both major natural-history cohorts. UCAS Japan found aneurysms located in the POSTERIOR COMMUNICATING artery or the ANTERIOR COMMUNICATING artery to be at higher risk than aneurysms elsewhere (hazard ratios 2.02 and 1.90 respectively, versus middle cerebral artery reference). ISUIA found aneurysms located in the BASILAR or POSTERIOR COMMUNICATING locations to have higher rupture risk than those in the internal carotid artery. Ishibashi et al. (2009) found posterior circulation aneurysms carry higher rupture risk than anterior circulation aneurysms. The SUAVe study found AComm aneurysms at high risk relative to all other locations. The consistent signal across cohorts: AComm, PComm, and posterior circulation are the elevated-risk territories.",
+      "meta": {
+        "source": "Location as rupture risk factor - UCAS, ISUIA, SUAVe, Ishibashi",
+        "citation": "Morita A, et al. N Engl J Med. 2012;366:2474-2482. / Wiebers DO, et al. Lancet. 2003;362:103-110. / Ishibashi T, et al. Stroke. 2009;40:313-16.",
+        "year": 2012,
+        "topic": "location",
+        "subtopic": "high_risk_locations",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "prospective_cohort",
+        "applies_to": ["AComm", "PComm", "posterior_circulation", "basilar"]
+      }
+    },
+    {
+      "text": "THE INTERNAL CAROTID ARTERY IS A COMPARATIVELY LOW-RISK LOCATION — with an important sub-territory caveat. In PHASES, the ICA is a distinct location band separate from MCA and from 'other' (which absorbs the communicating arteries and posterior circulation), and it does not attract the elevated weighting. ISUIA found ICA aneurysms to have LOWER rupture risk than basilar or PComm aneurysms. Most strikingly, ISUIA found that aneurysms under 12 mm located in the CAVERNOUS SEGMENT of the internal carotid artery had ALMOST NO risk of rupture — the cavernous ICA is functionally extradural, so even rupture there does not typically produce subarachnoid hemorrhage. Therefore an 'ICA aneurysm' is NOT a single risk category: the specific ICA segment (cavernous vs ophthalmic vs communicating vs terminus) materially changes the interpretation, and this granularity is absent from the coarse scores.",
+      "meta": {
+        "source": "ICA location risk and the cavernous segment exception",
+        "citation": "Wiebers DO, et al. Lancet. 2003;362:103-110 (ISUIA). / Greving JP, et al. Lancet Neurol. 2014 (PHASES location bands).",
+        "year": 2003,
+        "topic": "location",
+        "subtopic": "ICA",
+        "direction": "decreases_risk",
+        "contested": false,
+        "evidence": "prospective_cohort",
+        "applies_to": ["ICA", "cavernous", "ophthalmic", "segment_matters"]
+      }
+    },
+    {
+      "text": "CONTESTED - THE ICA-versus-MCA ORDERING: The scoring systems do not agree on how to rank the internal carotid artery against the middle cerebral artery. UCAS Japan's derived score places MCA in a HIGHER risk band (2 points) than plain non-ICPC internal carotid artery (0 points), and treats AComm and ICPC as highest (3 points). PHASES instead separates ICA and MCA as two distinct bands with broadly comparable low-to-moderate weighting, folding the communicating arteries and posterior circulation into a single higher 'other' category. A judgment about an ICA or MCA aneurysm should acknowledge that its location-derived risk depends on which scoring framework is applied, and the frameworks disagree.",
+      "meta": {
+        "source": "Location weighting disagreement between UCAS score and PHASES",
+        "citation": "Tominari S, et al. (UCAS Japan score) vs Greving JP, et al. Lancet Neurol. 2014 (PHASES).",
+        "year": 2015,
+        "topic": "location",
+        "subtopic": "score_disagreement",
+        "direction": "mixed",
+        "contested": true,
+        "evidence": "prospective_cohort",
+        "applies_to": ["ICA", "MCA", "reasoning_caution"]
+      }
+    },
+    {
+      "text": "Location risk is partly a proxy for GEOMETRY, which is why parent-vessel-aware morphological parameters partially subsume it. Dhar et al. observed that because size ratio and aneurysm inclination angle account for parent-vessel geometry, they 'bridge the gap between morphological studies and more qualitative location-based studies'. Mechanistically this is coherent: bifurcation apices (AComm, MCA bifurcation, basilar tip) experience direct flow impingement and high WSS gradients that sidewall locations (cavernous/ophthalmic ICA) do not. Carter et al. (2006) additionally described decreasing wall thickness in the more distal vessel calibers. So 'location' encodes both a hemodynamic environment and a wall-thickness context — meaning if patient-specific hemodynamics and size ratio are ALREADY being reasoned over, the location term carries less independent information than its cohort hazard ratio suggests, and double-counting it would inflate the risk estimate.",
+      "meta": {
+        "source": "Location as a proxy for local hemodynamics and wall thickness",
+        "citation": "Dhar S, et al. Neurosurgery. 2008;63(2):185-96. / Carter et al. 2006, wall thickness by caliber.",
+        "year": 2008,
+        "topic": "location",
+        "subtopic": "mechanism",
+        "direction": "mixed",
+        "contested": false,
+        "evidence": "cohort",
+        "applies_to": ["location", "size_ratio", "bifurcation", "sidewall", "double_counting"]
+      }
+    }
+  ]
+}

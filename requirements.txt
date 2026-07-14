@@ -1,0 +1,13 @@
+# NeuroVas pipeline (Phases 1-4) — pip install -r requirements.txt
+# Only needed to REGENERATE artifacts. Viewing viewer.html needs just a browser + a static
+# server (python3 -m http.server). See DEPENDENCIES.md.
+#
+# Python 3.9-3.14 (tested on 3.14). pyvista pulls in vtk + matplotlib automatically.
+numpy
+scipy
+networkx
+pandas
+trimesh
+pyvista
+nibabel
+scikit-image

@@ -1,0 +1,120 @@
+{
+  "corpus_file": "endovascular_access",
+  "description": "Vessel tortuosity, access-route difficulty, and catheter navigation. This is the evidence that turns find_catheter_path's difficulty_flags from a number into a clinical statement.",
+  "chunks": [
+    {
+      "text": "Vessel tortuosity — an excess in vessel length producing an undulating course, and at its extreme kinks and loops — directly complicates the navigation of endovascular devices. Unfavorable vascular anatomy is a common challenge in neurointerventional procedures and may be encountered in isolation or in combination at multiple levels: the aortic arch, the common carotid artery, the cervical internal carotid artery, the CAROTID SIPHON, and the intracranial circulation. Difficult transfemoral catheter access to the target artery is associated with longer procedure time, a lower rate of recanalization, and a lower rate of favorable outcome. Tortuosity is therefore not a cosmetic property of the route: it is a predictor of procedural failure.",
+      "meta": {
+        "source": "Unfavorable vascular anatomy in endovascular treatment - review (Journal of Stroke)",
+        "citation": "Journal of Stroke. 2020;22(2):164-180.",
+        "year": 2020,
+        "topic": "access",
+        "subtopic": "tortuosity",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "review",
+        "applies_to": ["access", "tortuosity", "carotid_siphon", "difficulty_flag"]
+      }
+    },
+    {
+      "text": "Carotid tortuosity has been quantified as an outcome-relevant variable. In a study of 302 patients with large-vessel occlusion undergoing endovascular thrombectomy, internal carotid artery tortuosity was classified on pre-procedural CTA into type 1 (straight ICA trunk) and type 2 (severe tortuosity potentially impeding adequate catheter placement); 53% were type 1 and 47% type 2. The premise under test — that ICA tortuosity increases the TECHNICAL DIFFICULTY of the procedure and thereby lowers the chance of successful recanalization and favorable outcome — reflects the standard clinical model of how tortuosity translates into risk: it does not primarily injure the patient directly, it degrades the operator's ability to deliver the device.",
+      "meta": {
+        "source": "Impact of carotid tortuosity on endovascular thrombectomy outcome",
+        "citation": "Impact of carotid tortuosity on outcome after endovascular thrombectomy. Neuroradiology / PubMed 33047199. n=302.",
+        "year": 2020,
+        "topic": "access",
+        "subtopic": "tortuosity",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "cohort",
+        "n": 302,
+        "applies_to": ["access", "tortuosity", "ICA", "difficulty_flag"]
+      }
+    },
+    {
+      "text": "SHARP ANGULATION IS A DISTINCT PROBLEM FROM TORTUOSITY, and this distinction is the mechanical justification for penalizing turn angle separately from path length. The most common reason for failure of a transradial approach to the aneurysm is an ACUTE ANGLE at the origin of the left common carotid artery, or left internal carotid artery tortuosity. In carotid stenting, a 90-degree angle between the common and internal carotid artery is explicitly documented as anticipating difficulty in navigating the device. Steep angulation causes the catheter system to HERNIATE BACK into the aortic arch rather than track forward — a loss of purchase, not merely a slower advance. A catheter route with one very sharp bend can be harder than a longer route with many gentle ones.",
+      "meta": {
+        "source": "Acute angulation as a cause of access failure - transradial and carotid stenting",
+        "citation": "Chen SH, Peterson EC. Endovascular Today, 2019. / Steerable microcatheter in tortuous ICA. Neurointervention. 2025.",
+        "year": 2025,
+        "topic": "access",
+        "subtopic": "turn_angle",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "case_series",
+        "applies_to": ["access", "turn_angle", "bifurcation_angle", "herniation", "difficulty_flag"]
+      }
+    },
+    {
+      "text": "Difficult access is predictable from pre-procedural variables, and simple scoring has been validated. Ribo et al. (2012) developed a scoring system on four variables individually and jointly associated with difficult access, primarily arising from elongated and tortuous vessel anatomy: age >75 years, hypertension, dyslipidemia, and LEFT carotid access. One point per criterion; a score >2 predicted difficult catheter access with 84% sensitivity and 74% specificity. Two implications for route planning: (a) difficulty is anticipatable from anatomy before the procedure, which is the premise of pre-procedural route simulation; and (b) LATERALITY matters — left-sided access is harder, a geometric fact about the arch that a purely length-based cost function would miss.",
+      "meta": {
+        "source": "Ribo et al. 2012 - difficult access scoring",
+        "citation": "Ribo M, et al., cited in NOVIS Transcarotid Neuroprotection System protocol.",
+        "year": 2012,
+        "topic": "access",
+        "subtopic": "difficulty_prediction",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "cohort",
+        "applies_to": ["access", "difficulty_prediction", "laterality", "pre_procedural_planning"]
+      }
+    },
+    {
+      "text": "COMPUTATIONAL ROUTE PLANNING IS AN OPEN AND ACTIVE PROBLEM — this is the gap a graph-search route planner addresses. As stated in a computational study of thrombectomy navigation: multiple endovascular approaches exist to reach the same target, yet determining the BEST route remains unclear, and operators often rely on SUBJECTIVE AND QUALITATIVE factors in their decision-making due to a LACK OF QUANTITATIVE DATA. The primary navigation challenge stems from the interaction between the device (catheter, guidewire) and the arterial anatomy. That study compared imaging-derived centerline TORTUOSITY INDEX against computationally simulated device navigation across 107 patient anatomies and 12 candidate pathways (femoral and radial approaches to the right or left carotid terminus and vertebral targets). Quantitative, centerline-graph-based route comparison is therefore a recognized research direction, not a solved clinical tool.",
+      "meta": {
+        "source": "Computational modeling of tortuosity and navigation in thrombectomy (Stroke, abstract WP261)",
+        "citation": "Tortuosity and Navigation in Mechanical Thrombectomy: A Computational Study of Anatomical Challenges. Stroke. 2025;56(suppl_1):WP261. n=107 anatomies.",
+        "year": 2025,
+        "topic": "access",
+        "subtopic": "computational_planning",
+        "direction": "mixed",
+        "contested": false,
+        "evidence": "computational_study",
+        "n": 107,
+        "applies_to": ["access", "route_planning", "tortuosity_index", "centerline", "graph_search"]
+      }
+    },
+    {
+      "text": "Patient vascular anatomy influences the feasibility and ease of catheter navigation, and there is LITTLE DATA on the influence of specific vessel metrics on target-vessel access time. Every endovascular intervention begins with the physician examining the patient's vascular anatomy to plan the approach — including the choice of radial versus femoral access site — to reach the intracranial lesion. Understanding how different vascular anatomies interact with catheter systems is crucial to choosing a successful interventional setup, and 3D reconstruction of CTA data has been proposed as a way to predict the feasibility of device navigation in advance. Device selection, procedural success, and outcomes are all affected by whether this trajectory information is available beforehand.",
+      "meta": {
+        "source": "Vessel geometry parameters and thrombectomy procedure difficulty (3D carotid reconstructions)",
+        "citation": "Assessment of thrombectomy procedure difficulty by neurointerventionalists based on vessel geometry parameters from carotid artery 3D reconstructions. 2023.",
+        "year": 2023,
+        "topic": "access",
+        "subtopic": "pre_procedural_planning",
+        "direction": "mixed",
+        "contested": false,
+        "evidence": "cohort",
+        "applies_to": ["access", "route_planning", "device_selection", "3d_reconstruction"]
+      }
+    },
+    {
+      "text": "VESSEL CALIBER IS A HARD CONSTRAINT, not a soft cost. A catheter or guiding catheter has a physical outer diameter; a vessel segment narrower than that diameter is not 'expensive' to traverse, it is IMPASSABLE. Device sizing is routinely a determinant of feasibility: in transradial neurointervention, radial artery size below a 2.5 mm cutoff predicts complications, and the choice between sheath-based and sheathless techniques exists precisely to manage the mismatch between device caliber and vessel caliber. Likewise, catheters have a minimum bend radius; beyond a certain turn sharpness the device will not track and will instead buckle or herniate. Route planning must model these as infeasibility constraints rather than as high-cost edges.",
+      "meta": {
+        "source": "Device caliber and vessel size constraints in neurointervention",
+        "citation": "Feasibility and Safety of 8F Guiding Catheter Navigation in Transradial Neurointervention for Unruptured Intracranial Aneurysms. 2026. / radial artery 2.5mm cutoff, ROC AUC 0.80.",
+        "year": 2026,
+        "topic": "access",
+        "subtopic": "caliber_constraint",
+        "direction": "mixed",
+        "contested": false,
+        "evidence": "cohort",
+        "applies_to": ["access", "catheter_radius", "min_radius", "impassable", "hard_constraint"]
+      }
+    },
+    {
+      "text": "TREATMENT SELECTION CONTEXT (what the route is FOR): The AHA/ASA guideline states that several factors should be considered in selecting optimal management of an unruptured intracranial aneurysm — the size, location, and other morphological characteristics of the aneurysm; documented growth on serial imaging; patient age; history of previous aneurysmal SAH; family history; presence of multiple aneurysms; or concurrent pathology (Class I, Level of Evidence C). Endovascular treatment of unruptured aneurysms is recommended to be performed at HIGH-VOLUME CENTERS (Class I, Level of Evidence B). Endoluminal FLOW DIVERSION is a newer strategy that may be considered in carefully selected cases, though long-term effects remain largely unknown. Wide-neck aneurysms (neck >= 4 mm, or dome-to-neck ratio < 2) are a recognized anatomical category that constrains which endovascular devices are usable — note that dome-to-neck ratio is the RECIPROCAL of the neck-width reasoning used in aspect ratio, so a high aspect ratio (narrow neck, tall dome) is generally FAVORABLE for coiling while a low one is not.",
+      "meta": {
+        "source": "AHA/ASA 2015 guideline - treatment selection and wide-neck constraint",
+        "citation": "Thompson BG, Brown RD Jr, Amin-Hanjani S, et al. Stroke. 2015;46:2368-2400. / Wide-neck definition per SEAL/Contour IDE criteria.",
+        "year": 2015,
+        "topic": "access",
+        "subtopic": "treatment_selection",
+        "direction": "mixed",
+        "contested": false,
+        "evidence": "guideline",
+        "applies_to": ["access", "coiling", "clipping", "flow_diversion", "wide_neck", "dome_to_neck"]
+      }
+    }
+  ]
+}

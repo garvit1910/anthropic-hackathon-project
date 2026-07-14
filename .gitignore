@@ -2,35 +2,57 @@
 
 # dependencies
 /node_modules
+node_modules/
 /.pnp
 .pnp.js
 .yarn/install-state.gz
 
+# python (pipeline)
+.venv/
+__pycache__/
+.tmp/
+
 # testing
 /coverage
 
-# next.js
+# next.js / build output
 /.next/
+.next/
 /out/
-
-# production
 /build
+dist/
 
 # misc
 .DS_Store
 *.pem
+.claude/settings.local.json
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
+# local env files / secrets
 .env*.local
+.env
+.env.*
+!.env.example
 
 # vercel
 .vercel
+.vercel/
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# raw datasets (downloaded inputs, not source) — pipeline only
+zenodo_aneux/
+aneurisk/
+cmha/
+lausanne/
+*.nii
+*.nii.gz
+
+# NOTE: artifacts/ and public/ are intentionally NOT ignored — the web app serves
+# 3D assets from them and the agent reads morphology/graph JSON from them.

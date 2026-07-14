@@ -4,6 +4,7 @@ const LINKS = [
   { href: "/console", label: "Console" },
   { href: "/cases", label: "Cases" },
   { href: "/method", label: "Method" },
+  { href: "/citations", label: "Citations" },
   { href: "/about", label: "About" },
 ];
 
@@ -15,8 +16,8 @@ export default function SiteNav({ transparent = false }: { transparent?: boolean
         transparent ? "" : "glass"
       }`}
     >
-      <Link href="/" className="display text-sm font-bold tracking-widest text-text-hi">
-        NEUROVAS<span className="text-accent"> COPILOT</span>
+      <Link href="/" className="font-hero text-sm font-bold uppercase tracking-[0.18em] text-white">
+        NeuroVas Copilot
       </Link>
       <nav className="flex items-center gap-1 text-xs sm:gap-2 sm:text-sm">
         {LINKS.map((l) => (

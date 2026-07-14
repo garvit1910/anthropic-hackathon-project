@@ -10,9 +10,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Derived from the CodePen palette; --bg-deep overridden to pure black per spec.
+        // Clinical dark workstation tokens (see globals.css :root).
         "bg-deep": "var(--bg-deep)",
         "bg-panel": "var(--bg-panel)",
+        "bg-elev": "var(--bg-elev)",
+        hairline: "var(--hairline)",
         vessel: "var(--vessel)",
         aneurysm: "var(--aneurysm)",
         accent: "var(--accent)",
@@ -20,17 +22,21 @@ const config: Config = {
         path: "var(--path)",
         "wss-low": "var(--wss-low)",
         "wss-high": "var(--wss-high)",
+        warn: "var(--warn)",
         "text-hi": "var(--text-hi)",
         "text-lo": "var(--text-lo)",
       },
       fontFamily: {
-        display: ["var(--font-orbitron)", "sans-serif"],
+        // Technical grotesk for headings (Orbitron dropped), mono for data.
+        display: ["var(--font-hero)", "system-ui", "sans-serif"],
+        hero: ["var(--font-hero)", "var(--font-inter)", "sans-serif"],
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        glow: "0 0 24px -6px var(--accent)",
-        "glow-vessel": "0 0 28px -8px var(--vessel)",
+        // Subtle depth, no neon glow.
+        glow: "0 0 0 1px var(--hairline)",
+        "glow-vessel": "0 8px 24px -12px rgba(0,0,0,0.6)",
       },
       keyframes: {
         "fade-in": {

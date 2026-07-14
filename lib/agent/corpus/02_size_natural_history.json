@@ -1,0 +1,93 @@
+{
+  "corpus_file": "size_natural_history",
+  "description": "Cohort evidence on aneurysm size thresholds and observed rupture rates. Contains the small-aneurysm paradox, which is the central tension for any sub-7mm case.",
+  "chunks": [
+    {
+      "text": "UCAS Japan is the largest prospective natural-history cohort of unruptured intracranial aneurysms: 5,720 patients with 6,697 aneurysms, mean follow-up 1.7 years, 11,660 patient-years. The overall annual rupture rate was 0.95%. Critically, the annual rupture risk varied dramatically and non-linearly by maximum diameter: 0.36% per year for 3-4 mm aneurysms; 0.50% per year for 5-6 mm; 1.69% per year for 7-9 mm; 4.37% per year for 10-24 mm; and 33.4% per year for aneurysms >=25 mm. These are the reference annual rates against which any individual aneurysm's size should be positioned. Note the sharp inflection between the 5-6 mm band and the 7-9 mm band: roughly a 3.4-fold jump.",
+      "meta": {
+        "source": "UCAS Japan Investigators 2012 - annual rupture rate by size",
+        "citation": "Morita A, Kirino T, Hashi K, et al. N Engl J Med. 2012;366:2474-2482.",
+        "year": 2012,
+        "topic": "size",
+        "subtopic": "annual_rupture_rate",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "prospective_cohort",
+        "n": 5720,
+        "applies_to": ["unruptured"]
+      }
+    },
+    {
+      "text": "UCAS Japan also identified two non-size predictors that independently raised rupture hazard. Location in the anterior communicating artery carried a hazard ratio of 1.90, and location in the posterior communicating artery a hazard ratio of 2.02, each relative to the middle cerebral artery reference. The presence of a DAUGHTER SAC — defined as an irregular protrusion from the aneurysmal wall — carried a hazard ratio of 1.63. Family history and prior SAH from a different aneurysm were NOT identified as rupture risk factors in this cohort, which is a direct disagreement with the PHASES weighting of prior SAH.",
+      "meta": {
+        "source": "UCAS Japan Investigators 2012 - location and daughter-sac hazard ratios",
+        "citation": "Morita A, et al. N Engl J Med. 2012;366:2474-2482.",
+        "year": 2012,
+        "topic": "location",
+        "subtopic": "hazard_ratio",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "prospective_cohort",
+        "n": 5720,
+        "applies_to": ["AComm", "PComm", "MCA", "daughter_sac", "irregular"]
+      }
+    },
+    {
+      "text": "ISUIA (International Study of Unruptured Intracranial Aneurysms) followed 1,692 prospectively-enrolled unoperated patients with a mean observation period of 4.1 years and reported 49 aneurysmal ruptures. ISUIA established the widely-used 7 mm heuristic: aneurysms larger than 7 mm may be considered high-risk. ISUIA also found that aneurysms in the basilar and posterior communicating locations carried higher rupture risk than internal carotid artery aneurysms, and — importantly — that aneurysms under 12 mm in the CAVERNOUS segment of the internal carotid artery had almost no rupture risk. The 7 mm threshold is a cohort-derived heuristic, not a biological cliff.",
+      "meta": {
+        "source": "ISUIA Investigators 2003 - natural history and the 7mm threshold",
+        "citation": "Wiebers DO, Whisnant JP, Huston J 3rd, et al. Lancet. 2003;362:103-110.",
+        "year": 2003,
+        "topic": "size",
+        "subtopic": "size_threshold",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "prospective_cohort",
+        "n": 1692,
+        "applies_to": ["unruptured", "ICA", "posterior_circulation", "cavernous"]
+      }
+    },
+    {
+      "text": "CONTESTED - THE SMALL ANEURYSM PARADOX: The size thresholds derived from different cohorts do not agree, and this disagreement is the single most consequential unresolved question for a sub-7 mm aneurysm. ISUIA and UCAS Japan both point to >=7 mm as the elevated-risk band. But the SUAVe study, which focused specifically on small aneurysms, concluded that aneurysms >=4 mm carry significantly increased rupture risk compared with those <4 mm — a threshold nearly half of the ISUIA/UCAS one. These studies enrolled heterogeneous populations with different risk-factor profiles, which is the leading explanation for the divergent thresholds. The practical consequence: a 4-6 mm aneurysm sits precisely in the zone where the literature contradicts itself, and size alone cannot resolve it.",
+      "meta": {
+        "source": "SUAVe study vs ISUIA/UCAS - conflicting size thresholds",
+        "citation": "Sonobe M, Yamazaki T, Yonekura M, Kikuchi H. Stroke. 2010;41:1969-77 (SUAVe); vs Wiebers 2003, Morita 2012.",
+        "year": 2010,
+        "topic": "size",
+        "subtopic": "size_threshold",
+        "direction": "mixed",
+        "contested": true,
+        "evidence": "prospective_cohort",
+        "applies_to": ["small_aneurysm", "under_7mm", "4mm_to_6mm"]
+      }
+    },
+    {
+      "text": "CONTESTED - THE CLINICAL PARADOX OF SIZE: A large fraction of aneurysms that actually rupture are small, below the size thresholds that the natural-history cohorts identify as high risk. This is not a contradiction of the cohort data — small aneurysms have a lower per-aneurysm rupture rate but are far more prevalent, so they contribute a large absolute number of ruptures. The clinical implication is directional and important: a low rupture rate in a size band is a statement about a POPULATION, not a reassurance about an INDIVIDUAL. Reasoning that stops at 'this aneurysm is small, therefore low risk' commits a base-rate error. Additional discriminating features (morphology, hemodynamics, growth, irregularity) are required to move from the population rate toward a patient-specific judgment.",
+      "meta": {
+        "source": "Small-aneurysm rupture paradox - base rate vs individual risk",
+        "citation": "Synthesis: Weir B, et al. J Neurosurg. 2002;96:64-70; SUAVe 2010; Mehan WA, et al. J Neurointerv Surg. 2014;6:761-766.",
+        "year": 2014,
+        "topic": "size",
+        "subtopic": "base_rate",
+        "direction": "mixed",
+        "contested": true,
+        "evidence": "review",
+        "applies_to": ["small_aneurysm", "under_7mm", "reasoning_caution"]
+      }
+    },
+    {
+      "text": "Documented GROWTH on serial imaging is one of the few features with consistent, uncontested directional agreement across the literature: growth increases rupture risk and is an accepted trigger to escalate from surveillance toward intervention. The AHA/ASA guideline recommends intermittent imaging follow-up for conservatively managed unruptured aneurysms on this basis. Because growth is measured over time rather than inferred from a single snapshot, it is the highest-value piece of information that a single-timepoint morphological or hemodynamic assessment CANNOT provide. Any assessment made from one scan should explicitly name serial-imaging growth as the observation that would most change the judgment.",
+      "meta": {
+        "source": "AHA/ASA 2015 - growth as an escalation trigger",
+        "citation": "Thompson BG, Brown RD Jr, Amin-Hanjani S, et al. Stroke. 2015;46:2368-2400.",
+        "year": 2015,
+        "topic": "size",
+        "subtopic": "growth",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "guideline",
+        "applies_to": ["unruptured", "surveillance", "what_would_change_my_mind"]
+      }
+    }
+  ]
+}

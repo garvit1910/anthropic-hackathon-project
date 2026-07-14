@@ -1,0 +1,19 @@
+{
+  "caseId": "HERO_sub013",
+  "location": "other",
+  "domeHeightMm": 6.542,
+  "neckWidthMm": 6.153,
+  "maxDiameterMm": 6.156,
+  "aspectRatio": 1.063,
+  "sizeRatio": 2.069,
+  "nonSphericityIndex": 0,
+  "undulationIndex": 0,
+  "inflowAngleDeg": 0,
+  "parentVesselDiameterMm": 2.975,
+  "elementIds": {
+    "dome": "aneurysm_dome",
+    "neck": "neck_region",
+    "inflow_jet": "SL_0",
+    "parent_vessel": "parent_vessel"
+  }
+}

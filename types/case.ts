@@ -16,6 +16,8 @@ export interface CaseAssets {
   streamlines: string; // /cases/{id}/streamlines.json
   morphology: string; // /cases/{id}/morphology.json
   manifest: string; // /cases/{id}/manifest.json
+  brain?: string; // /cases/{id}/brain.glb — optional translucent context hull
+  catheterPaths?: string; // /cases/{id}/catheter_paths.json — precomputed real routes
 }
 
 /** Gallery-level metadata for a hero case. */

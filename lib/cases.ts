@@ -1,7 +1,7 @@
 import type { CaseMeta } from "@/types";
 
 /** Build the standard asset paths for a case id. */
-function assetsFor(id: string): CaseMeta["assets"] {
+function assetsFor(id: string, opts: { brain?: boolean; catheterPaths?: boolean } = {}): CaseMeta["assets"] {
   const base = `/cases/${id}`;
   return {
     vesselTree: `${base}/vessel_tree.glb`,
@@ -10,17 +10,30 @@ function assetsFor(id: string): CaseMeta["assets"] {
     streamlines: `${base}/streamlines.json`,
     morphology: `${base}/morphology.json`,
     manifest: `${base}/manifest.json`,
+    ...(opts.brain ? { brain: `${base}/brain.glb` } : {}),
+    ...(opts.catheterPaths ? { catheterPaths: `${base}/catheter_paths.json` } : {}),
   };
 }
 
 /**
  * The hero case id, pinned by demo mode and used as the landing → console
- * cross-fade target.
+ * cross-fade target. This is Rounak's real reconstruction (full bilateral
+ * vessel tree + brain hull + verified catheter routes + baked WSS heatmap).
  */
-export const HERO_CASE_ID = "ANEUX_042";
+export const HERO_CASE_ID = "HERO_sub013";
 
 /** Registered hero cases. Only public datasets are used. */
 export const CASES: CaseMeta[] = [
+  {
+    id: "HERO_sub013",
+    label: "Cerebral aneurysm — full vasculature",
+    dataset: "Lausanne TOF-MRA (OpenNeuro ds003949)",
+    location: "other",
+    maxDiameterMm: 6.2,
+    aspectRatio: 1.1,
+    ruptureStatus: "unruptured",
+    assets: assetsFor("HERO_sub013", { brain: true, catheterPaths: true }),
+  },
   {
     id: "ANEUX_042",
     label: "ICA-ophthalmic saccular aneurysm",

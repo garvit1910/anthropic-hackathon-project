@@ -1,0 +1,134 @@
+{
+  "corpus_file": "hemodynamics_wss",
+  "description": "Wall shear stress, oscillatory shear index, low-shear area fraction. This is the most contested region of the corpus BY DESIGN - it contains directly conflicting primary evidence plus the unifying hypothesis that reconciles them.",
+  "chunks": [
+    {
+      "text": "THE CENTRAL CONTROVERSY, STATED PLAINLY: Image-based computational fluid dynamics models have suggested associations between hemodynamics and intracranial aneurysm rupture, but WITH CONFLICTING FINDINGS REGARDING WALL SHEAR STRESS. Some studies associate rupture with LOW WSS; others associate rupture with HIGH WSS. This is not a case of one side being wrong and the other right — it is a well-known, unresolved, actively-debated split in the CFD-aneurysm literature, often called the 'high-versus-low WSS controversy'. Any hemodynamic claim about rupture risk must be presented as SUGGESTIVE, NOT DECISIVE. A copilot that asserts a confident WSS-based rupture verdict is misrepresenting the state of the science.",
+      "meta": {
+        "source": "Meng et al. 2014 - High WSS or low WSS? (AJNR) - the controversy",
+        "citation": "Meng H, Tutino VM, Xiang J, Siddiqui A. AJNR Am J Neuroradiol. 2014;35:1254-1262.",
+        "year": 2014,
+        "topic": "wss",
+        "subtopic": "controversy",
+        "direction": "mixed",
+        "contested": true,
+        "evidence": "review",
+        "applies_to": ["wss", "osi", "reasoning_caution", "cfd"]
+      }
+    },
+    {
+      "text": "THE UNIFYING HYPOTHESIS (Meng et al. 2014): The high-vs-low WSS controversy is proposed to be a manifestation of the complexity of aneurysm pathophysiology, in which BOTH high and low wall shear stress can drive growth and rupture — via two DIFFERENT biological pathways acting on two different aneurysm phenotypes. (1) LOW WSS combined with HIGH oscillatory shear index (OSI) triggers an INFLAMMATORY-CELL-MEDIATED pathway, associated with the growth and rupture of LARGE, ATHEROSCLEROTIC aneurysm phenotypes. (2) HIGH WSS combined with a POSITIVE WSS GRADIENT triggers a MURAL-CELL-MEDIATED pathway, associated with the growth and rupture of SMALL aneurysms or SECONDARY BLEB phenotypes. This is the single most useful framing in the corpus: it means the phenotype of the aneurysm determines WHICH WSS story applies to it, and a low-shear finding on a small aneurysm is therefore NOT straightforwardly interpretable via the inflammatory pathway.",
+      "meta": {
+        "source": "Meng et al. 2014 - two-pathway unifying hypothesis (AJNR)",
+        "citation": "Meng H, Tutino VM, Xiang J, Siddiqui A. AJNR Am J Neuroradiol. 2014;35:1254-1262.",
+        "year": 2014,
+        "topic": "wss",
+        "subtopic": "unifying_hypothesis",
+        "direction": "mixed",
+        "contested": true,
+        "evidence": "review",
+        "applies_to": ["wss", "osi", "phenotype", "small_aneurysm", "bleb", "atherosclerotic"]
+      }
+    },
+    {
+      "text": "EVIDENCE FOR LOW WSS (side 1 of the paradox): In a study of intracranial aneurysms at the INTERNAL CAROTID ARTERY, ruptured and unruptured aneurysms had SIMILAR MAXIMAL wall shear stress (26 vs 23 N/m2) — meaning peak WSS did not discriminate. What DID discriminate was the AREA under low shear: ruptured aneurysms had a substantially greater portion of the aneurysm surface exposed to low wall shear stress, 27% versus 11% for unruptured aneurysms (p=0.03). The authors conclude that for ICA aneurysms specifically, an AREA of low wall shear is associated with rupture. This is the direct empirical basis for using LOW-SHEAR AREA FRACTION (rather than peak or mean WSS) as the reasoning variable, and it is specifically validated at the ICA.",
+      "meta": {
+        "source": "Jou et al. 2008 - low-shear AREA and ICA aneurysm rupture (AJNR)",
+        "citation": "Jou LD, Lee DH, Morsi H, Mawad ME. AJNR Am J Neuroradiol. 2008;29(9):1761-7.",
+        "year": 2008,
+        "topic": "wss",
+        "subtopic": "low_wss_evidence",
+        "direction": "increases_risk",
+        "contested": true,
+        "evidence": "cohort",
+        "applies_to": ["wss", "low_shear_area_fraction", "ICA"]
+      }
+    },
+    {
+      "text": "EVIDENCE FOR LOW WSS (side 1, continued): Xiang et al., in a multivariate statistical analysis of 119 aneurysms, found that intracranial aneurysm rupture could be predicted by LOW WSS combined with HIGH oscillatory shear index. Separately, Boussel et al. showed in a longitudinal patient-specific study that aneurysm GROWTH occurs at the region of LOW wall shear stress, providing a spatial (not merely aggregate) correlation between low-shear regions and wall change over time. The proposed mechanism is that low WSS and high OSI produce endothelial dysfunction, promote inflammatory cell infiltration, and drive degenerative wall remodeling — thinning the wall until it fails.",
+      "meta": {
+        "source": "Xiang et al. and Boussel et al. - low WSS / high OSI evidence",
+        "citation": "Xiang J, et al. Stroke. 2011;42:144-152. / Boussel L, et al. Stroke. 2008;39:2997-3002.",
+        "year": 2011,
+        "topic": "wss",
+        "subtopic": "low_wss_evidence",
+        "direction": "increases_risk",
+        "contested": true,
+        "evidence": "cohort",
+        "n": 119,
+        "applies_to": ["wss", "osi", "growth", "inflammation"]
+      }
+    },
+    {
+      "text": "EVIDENCE FOR HIGH WSS (side 2 of the paradox — this DIRECTLY CONTRADICTS the low-WSS chunks): Castro et al., analyzing 26 aneurysms, found that intracranial aneurysm rupture was correlated with HIGH MAXIMUM wall shear stress — the opposite direction to Xiang and Jou. Experimental work also supports a high-WSS mechanism for aneurysm INITIATION: high wall shear stress, particularly in combination with a positive spatial WSS gradient, incites destructive remodeling at bifurcation apices and is implicated in aneurysm formation. One framing found in the literature is that HIGH wall shear incites cerebral aneurysm FORMATION while LOW wall shear stress PROPAGATES cerebral aneurysm GROWTH — a temporal separation of the two mechanisms that partially reconciles the conflict.",
+      "meta": {
+        "source": "Castro et al. and high-WSS formation literature",
+        "citation": "Castro MA, et al. AJNR Am J Neuroradiol. 2009;30:297-302. / Meng H. High wall shear stress and spatial gradients in vascular pathology: a review. Ann Biomed Eng. 2013;41:1411-27.",
+        "year": 2013,
+        "topic": "wss",
+        "subtopic": "high_wss_evidence",
+        "direction": "increases_risk",
+        "contested": true,
+        "evidence": "cohort",
+        "n": 26,
+        "applies_to": ["wss", "high_wss", "initiation", "formation"]
+      }
+    },
+    {
+      "text": "META-ANALYTIC VERDICT (partial, and itself qualified): A systematic review and meta-analysis of the association of wall shear stress with intracranial aneurysm rupture examined mean wall shear stress across the available studies and found that only TWO reports suggested HIGH wall shear stress as a contributing factor to rupture, with the preponderance pointing toward low WSS. This tips the aggregate balance toward the low-WSS association for RUPTURE specifically — but it does not settle the question, because the same review notes that patient-specific versus generalized hemodynamic boundary conditions produce systematically different WSS values, meaning studies are not straightforwardly comparable. The honest summary: low WSS has the weight of numbers behind it for rupture, high WSS has a coherent mechanistic case especially for formation and for small/bleb phenotypes, and the CFD methodology itself introduces variance that neither side fully controls for.",
+      "meta": {
+        "source": "Zhou et al. - WSS and aneurysm rupture systematic review/meta-analysis (Scientific Reports)",
+        "citation": "Association of wall shear stress with intracranial aneurysm rupture: systematic review and meta-analysis. Sci Rep. 2017;7:5331.",
+        "year": 2017,
+        "topic": "wss",
+        "subtopic": "meta_analysis",
+        "direction": "mixed",
+        "contested": true,
+        "evidence": "meta_analysis",
+        "applies_to": ["wss", "reasoning_caution", "cfd_methodology"]
+      }
+    },
+    {
+      "text": "CFD METHODOLOGICAL CAVEATS — the limits of the physics itself. Standard image-based CFD of intracranial aneurysms rests on assumptions that are known to bias results: a RIGID WALL (the artery is modeled as not deforming, though real walls are compliant), LAMINAR FLOW, and NEWTONIAN blood rheology (though blood is shear-thinning). Patient-specific inflow waveforms are frequently unavailable and are substituted with generic ones, which is a recognized source of bias. Absolute WSS magnitudes from CFD should therefore be treated as RELATIVE and COMPARATIVE quantities — useful for identifying WHERE on a given dome shear is low relative to elsewhere on the same dome — rather than as calibrated physical measurements comparable across studies or patients.",
+      "meta": {
+        "source": "CFD assumption limitations in aneurysm hemodynamic simulation",
+        "citation": "Synthesis of methodological caveats: rigid-wall, laminar, Newtonian assumptions; generic inflow waveforms.",
+        "year": 2016,
+        "topic": "wss",
+        "subtopic": "methodology_limits",
+        "direction": "mixed",
+        "contested": true,
+        "evidence": "review",
+        "applies_to": ["cfd", "wss", "reasoning_caution", "stale_cfd"]
+      }
+    },
+    {
+      "text": "A CFD field is solved for ONE SPECIFIC GEOMETRY. The wall shear stress distribution, oscillatory shear index, and streamline pattern are all functions of the vessel and dome shape used as the simulation domain. If the geometry changes — for instance in a hypothetical 'what if the dome were larger' scenario — the previously computed hemodynamic field is NO LONGER VALID for the new shape. Intra-aneurysmal flow is highly sensitive to neck geometry and dome size (Ujiie 1999 showed inflow is strongly governed by neck size and position), so even modest geometric perturbation can qualitatively alter the flow pattern. Re-deriving hemodynamics for a perturbed shape requires re-running the simulation; it cannot be extrapolated. Morphological risk factors (aspect ratio, size ratio) CAN be recomputed directly from the new geometry; hemodynamic ones CANNOT.",
+      "meta": {
+        "source": "Geometry-dependence of CFD fields - basis for the staleness rule",
+        "citation": "Principle derived from CFD domain-dependence; see Ujiie H, et al. Neurosurgery. 1999;45:119-29 for neck-geometry sensitivity of inflow.",
+        "year": 1999,
+        "topic": "wss",
+        "subtopic": "geometry_dependence",
+        "direction": "mixed",
+        "contested": false,
+        "evidence": "review",
+        "applies_to": ["cfd", "what_if", "stale_cfd", "perturbation"]
+      }
+    },
+    {
+      "text": "WHAT THE HISTOPATHOLOGY ACTUALLY SHOWS (the ground truth the CFD is trying to proxy): Histopathological analyses of ruptured aneurysms consistently reveal endothelial loss, smooth-muscle-cell depletion, extracellular matrix degradation, and intense inflammatory cell infiltration. Morphological and hemodynamic studies converge on the finding that high aspect and size ratios, coupled with low wall shear stress and elevated oscillatory shear index, contribute to FOCAL WALL WEAKENING. The important interpretive point: WSS and OSI are SURROGATES for wall degeneration. They are not the failure mechanism itself. The aneurysm ruptures because the wall is degraded; low WSS is one hypothesized route by which the wall becomes degraded. This is why hemodynamics can be informative and still be far from deterministic.",
+      "meta": {
+        "source": "Integrative review - histopathology of ruptured aneurysm walls",
+        "citation": "Mechanisms of Intracranial Aneurysm Rupture: An Integrative Review of Experimental and Clinical Evidence. J Clin Med. 2025;14(22):8256.",
+        "year": 2025,
+        "topic": "wss",
+        "subtopic": "pathobiology",
+        "direction": "increases_risk",
+        "contested": false,
+        "evidence": "review",
+        "applies_to": ["wss", "osi", "wall_degradation", "inflammation", "aspect_ratio", "size_ratio"]
+      }
+    }
+  ]
+}

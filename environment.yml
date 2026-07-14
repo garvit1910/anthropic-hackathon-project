@@ -1,0 +1,19 @@
+name: neurovas
+channels:
+  - conda-forge
+  - vmtk
+dependencies:
+  - python=3.10
+  - vmtk
+  - vtk
+  - numpy
+  - scipy
+  - scikit-image
+  - nibabel
+  - networkx
+  - trimesh
+  - pyvista
+  - pandas          # reading the AneuX morphometrics / clinical CSVs
+  - pip
+  - pip:
+      - pygltflib   # GLB read/write helpers

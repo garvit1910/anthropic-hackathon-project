@@ -7,10 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "gen:fixtures": "node scripts/gen-fixtures.mjs"
+    "gen:fixtures": "node scripts/gen-fixtures.mjs",
+    "gen:artifacts": "node scripts/gen-artifacts.mjs",
+    "adopt:hero": "node scripts/adopt-hero.mjs && node scripts/optimize-hero-glb.mjs",
+    "stage:viewer": "node scripts/stage-viewer-assets.mjs",
+    "agent:preflight": "tsx scripts/preflight.ts",
+    "agent:index": "tsx scripts/index-corpus.ts",
+    "agent": "tsx scripts/agent-cli.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
+    "@anthropic-ai/sdk": "^0.111.0",
     "@react-three/drei": "^8.20.2",
     "@react-three/fiber": "^8.6.2",
     "framer-motion": "^11.11.17",
@@ -22,15 +28,18 @@
   },
   "devDependencies": {
     "@gltf-transform/core": "^3.10.1",
+    "@gltf-transform/functions": "^3.10.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/three": "^0.136.1",
     "eslint": "^8",
     "eslint-config-next": "14.2.15",
+    "meshoptimizer": "^1.2.0",
     "playwright": "^1.61.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.23.0",
     "typescript": "^5"
   }
 }
