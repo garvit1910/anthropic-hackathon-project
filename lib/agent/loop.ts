@@ -14,6 +14,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM_PROMPT } from "./prompt";
 import { TOOL_DEFS, runTool } from "./tools";
+import type { ClinicalFactors } from "./scoring";
 import type {
   AgentResult,
   AgentStreamEvent,
@@ -32,6 +33,8 @@ export interface RunOpts {
   onEvent?: (e: AgentStreamEvent) => void;
   /** Abort the run (client disconnected / cancelled). */
   signal?: AbortSignal;
+  /** Clinician-supplied scoring factors (from the poll) — injected into compute_risk_scores. */
+  factors?: ClinicalFactors;
 }
 
 function extractRisk(text: string): { prose: string; risk: RiskAssessment | null } {
@@ -117,7 +120,7 @@ export async function runAgent(userText: string, opts: RunOpts = {}): Promise<Ag
 
       const started = Date.now();
       try {
-        const { result, summary } = await runTool(tu.name, { caseId, ...tu.input });
+        const { result, summary } = await runTool(tu.name, { caseId, ...tu.input, factors: opts.factors });
         trace.status = "ok";
         trace.durationMs = Date.now() - started;
         trace.resultSummary = summary;

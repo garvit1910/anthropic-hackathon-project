@@ -1,89 +1,152 @@
 import Link from "next/link";
-import SiteNav from "@/components/SiteNav";
-import { CASES } from "@/lib/cases";
+import PageShell from "@/components/PageShell";
+import PageHeader from "@/components/PageHeader";
+import Tag from "@/components/ui/Tag";
+import { CASES, HERO_CASE_ID } from "@/lib/cases";
+import type { CaseMeta } from "@/types";
 
+/** Palette-token accent per vascular location (no neon). */
 const LOCATION_GLOW: Record<string, string> = {
-  ICA: "rgba(255,43,209,0.35)",
-  MCA: "rgba(0,187,238,0.35)",
-  AComm: "rgba(255,77,109,0.4)",
-  PComm: "rgba(127,0,255,0.35)",
-  BA: "rgba(255,238,0,0.3)",
-  other: "rgba(125,143,168,0.3)",
+  ICA: "var(--accent)",
+  MCA: "var(--wss-low)",
+  AComm: "var(--aneurysm)",
+  PComm: "var(--violet)",
+  BA: "var(--path)",
+  other: "var(--accent)",
 };
 
-const STATUS_STYLE: Record<string, string> = {
-  ruptured: "border-aneurysm/50 text-aneurysm",
-  unruptured: "border-accent/40 text-accent",
-  unknown: "border-white/15 text-text-lo",
+const STATUS_TONE: Record<string, "aneurysm" | "accent" | "neutral"> = {
+  ruptured: "aneurysm",
+  unruptured: "accent",
+  unknown: "neutral",
 };
+
+/**
+ * Honest provenance. Only the hero case is a real, contract-passing
+ * reconstruction; the others are lightweight public-dataset fixtures that let
+ * the viewer render before the full pipeline landed. (See current_status.md.)
+ */
+const PROVENANCE: Record<string, { label: string; real: boolean }> = {
+  HERO_sub013: { label: "TOF-MRA reconstruction", real: true },
+};
+function provenanceOf(id: string) {
+  return PROVENANCE[id] ?? { label: "demo fixture", real: false };
+}
+
+function glow(location: string) {
+  return LOCATION_GLOW[location] ?? "var(--accent)";
+}
+
+function StatRow({ c }: { c: CaseMeta }) {
+  return (
+    <div className="flex items-center gap-5">
+      <div>
+        <div className="num text-sm text-text-hi">
+          {c.maxDiameterMm.toFixed(1)}
+          <span className="text-text-lo"> mm</span>
+        </div>
+        <div className="label mt-0.5">max Ø</div>
+      </div>
+      <div>
+        <div className="num text-sm text-text-hi">{c.aspectRatio.toFixed(1)}</div>
+        <div className="label mt-0.5">aspect</div>
+      </div>
+    </div>
+  );
+}
 
 export default function CasesPage() {
-  return (
-    <main className="min-h-screen bg-black pt-24">
-      <SiteNav />
-      <div className="mx-auto max-w-6xl px-5 pb-24 sm:px-8">
-        <p className="display text-xs uppercase tracking-[0.35em] text-text-lo">
-          Hero cases
-        </p>
-        <h1 className="mt-3 text-3xl font-semibold text-text-hi">Case gallery</h1>
-        <p className="mt-2 max-w-2xl text-sm text-text-lo">
-          Select a patient to load into the console. Every case is drawn from a
-          public dataset — no private data is used.
-        </p>
+  const hero = CASES.find((c) => c.id === HERO_CASE_ID);
+  const rest = CASES.filter((c) => c.id !== HERO_CASE_ID);
 
-        <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {CASES.map((c) => (
+  return (
+    <PageShell max="lg">
+      <PageHeader
+        eyebrow="Case library"
+        title="Choose a patient"
+        lede="Each case loads into the console as a live 3D model you can interrogate. Every one is drawn from a public dataset — no private data is used. We flag which are real reconstructions and which are demo fixtures."
+      />
+
+      {/* Featured — the real reconstruction. */}
+      {hero && (
+        <Link
+          href={`/console?case=${hero.id}`}
+          className="glass glass-hover group relative mt-10 block overflow-hidden rounded-2xl p-6 sm:p-8"
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rounded-full opacity-60 blur-3xl transition-opacity group-hover:opacity-90"
+            style={{ background: `radial-gradient(closest-side, ${glow(hero.location)}, transparent)` }}
+          />
+          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <Tag tone="accent">★ featured</Tag>
+                <Tag tone="accent">✓ {provenanceOf(hero.id).label}</Tag>
+                <Tag tone={STATUS_TONE[hero.ruptureStatus]}>{hero.ruptureStatus}</Tag>
+              </div>
+              <h2 className="display mt-4 text-xl font-semibold text-text-hi sm:text-2xl">
+                {hero.label}
+              </h2>
+              <p className="num mt-1 text-xs text-text-lo">{hero.id}</p>
+              <p className="mt-3 text-sm leading-relaxed text-text-lo">
+                A full bilateral vessel tree with brain hull, verified catheter
+                routes and a baked WSS heatmap — rebuilt from raw {hero.dataset}{" "}
+                slices.
+              </p>
+            </div>
+            <div className="flex items-center gap-8 border-t border-hairline pt-5 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0">
+              <StatRow c={hero} />
+              <span className="num text-sm text-text-lo transition-colors group-hover:text-accent">
+                Enter console →
+              </span>
+            </div>
+          </div>
+        </Link>
+      )}
+
+      {/* The rest. */}
+      <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {rest.map((c) => {
+          const prov = provenanceOf(c.id);
+          return (
             <Link
               key={c.id}
               href={`/console?case=${c.id}`}
-              className="glass glass-hover group relative overflow-hidden rounded-2xl p-5"
+              className="glass glass-hover group relative flex flex-col overflow-hidden rounded-2xl p-5"
             >
               <div
-                className="absolute -right-8 -top-8 h-32 w-32 rounded-full opacity-70 blur-2xl transition-opacity group-hover:opacity-100"
-                style={{ background: `radial-gradient(closest-side, ${LOCATION_GLOW[c.location]}, transparent)` }}
+                aria-hidden
+                className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-50 blur-2xl transition-opacity group-hover:opacity-80"
+                style={{ background: `radial-gradient(closest-side, ${glow(c.location)}, transparent)` }}
               />
               <div className="relative flex items-center justify-between">
-                <span className="display rounded-md border border-white/10 bg-black/40 px-2 py-1 text-[11px] font-semibold tracking-wider text-text-hi">
+                <span className="display rounded-md border border-hairline bg-black/30 px-2 py-1 text-[11px] font-semibold tracking-wider text-text-hi">
                   {c.location}
                   {c.side ? `·${c.side}` : ""}
                 </span>
-                <span
-                  className={`num rounded-full border px-2.5 py-0.5 text-[10px] ${STATUS_STYLE[c.ruptureStatus]}`}
-                >
-                  {c.ruptureStatus}
-                </span>
+                <Tag tone={STATUS_TONE[c.ruptureStatus]}>{c.ruptureStatus}</Tag>
               </div>
-              <h2 className="relative mt-16 text-base font-medium text-text-hi">
+
+              <h2 className="relative mt-6 text-base font-medium text-text-hi">
                 {c.label}
               </h2>
               <p className="num relative mt-1 text-[11px] text-text-lo">{c.id}</p>
-              <div className="relative mt-4 flex items-center gap-4 border-t border-white/5 pt-3">
-                <div>
-                  <div className="num text-sm text-text-hi">
-                    {c.maxDiameterMm.toFixed(1)}
-                    <span className="text-text-lo"> mm</span>
-                  </div>
-                  <div className="text-[10px] uppercase tracking-wide text-text-lo">
-                    max Ø
-                  </div>
-                </div>
-                <div>
-                  <div className="num text-sm text-text-hi">
-                    {c.aspectRatio.toFixed(1)}
-                  </div>
-                  <div className="text-[10px] uppercase tracking-wide text-text-lo">
-                    aspect
-                  </div>
-                </div>
-                <div className="ml-auto text-xs text-text-lo transition-colors group-hover:text-accent">
+
+              <div className="relative mt-5 flex flex-1 items-end justify-between border-t border-hairline pt-4">
+                <StatRow c={c} />
+                <span className="num text-xs text-text-lo transition-colors group-hover:text-accent">
                   open →
-                </div>
+                </span>
               </div>
-              <p className="relative mt-3 text-[10px] text-text-lo/70">{c.dataset}</p>
+              <div className="relative mt-3 flex items-center justify-between text-[10px] text-text-lo/70">
+                <span>{c.dataset}</span>
+                <span className="tag">{prov.label}</span>
+              </div>
             </Link>
-          ))}
-        </div>
+          );
+        })}
       </div>
-    </main>
+    </PageShell>
   );
 }

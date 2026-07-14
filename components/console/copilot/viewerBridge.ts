@@ -8,9 +8,15 @@
 export type ViewerMessage =
   | { type: "setCase"; case: string }
   | { type: "focusAneurysm" }
+  | { type: "findSac" } // run the animated aneurysm-sac detection (gates every analysis layer + catheter)
+  | { type: "findCatheter" } // run the animated catheter-route search (replaces the old t-cath toggle)
   | { type: "setLayer"; id: string; on: boolean }
   | { type: "setWss"; on: boolean }
-  | { type: "reset" };
+  | { type: "reset" }
+  | { type: "setThinking"; on: boolean } // start/stop the alive reasoning-orbit
+  | { type: "settle" } // smooth glide to the hero framing, then hold
+  | { type: "highlight"; elementIds: string[]; mode?: string; annotation?: string } // agent highlight_geometry → flash the named 3D elements
+  | { type: "highlightEvidence"; topic: string }; // an evidence-graph node click → highlight the matching geometry
 
 let target: Window | null = null;
 

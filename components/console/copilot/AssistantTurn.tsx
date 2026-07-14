@@ -2,8 +2,13 @@
 
 import { Fragment, type ReactNode } from "react";
 import type { AssistantMessage } from "./useAgentStream";
+import type { ClinicalFactors } from "@/lib/agent/scoring";
 import ReasoningStream from "./ReasoningStream";
 import RiskCard from "./RiskCard";
+import ScoresCard from "./ScoresCard";
+import ChartNote from "./ChartNote";
+import AssumptionsPoll from "./AssumptionsPoll";
+import EvidenceGraph from "./EvidenceGraph";
 
 /** Minimal inline formatter: **bold** and [citation-id] chips. */
 function formatInline(s: string): ReactNode[] {
@@ -55,12 +60,22 @@ function RichText({ text }: { text: string }) {
   );
 }
 
-export default function AssistantTurn({ message }: { message: AssistantMessage }) {
+export default function AssistantTurn({
+  message,
+  caseId,
+  onSubmitFactors,
+}: {
+  message: AssistantMessage;
+  caseId: string;
+  onSubmitFactors?: (factors: ClinicalFactors) => void;
+}) {
   const answerReady = message.answer.split("```")[0].trim().length > 0;
+  // Scores land WITH the verdict (risk set / turn done), never prematurely mid-stream.
+  const scoresReady = message.scores && (message.risk || message.status === "done");
 
   return (
     <div className="space-y-2.5" aria-live="polite">
-      <ReasoningStream message={message} />
+      {(message.timeline.length > 0 || !message.poll) && <ReasoningStream message={message} />}
 
       {message.status === "error" ? (
         <div className="rounded-md border border-wss-high/30 bg-wss-high/5 p-3 text-[12px] text-wss-high/90">
@@ -70,6 +85,8 @@ export default function AssistantTurn({ message }: { message: AssistantMessage }
             The 3D view stays fully interactive — try again, or check that the agent has an API key.
           </div>
         </div>
+      ) : message.poll ? (
+        <AssumptionsPoll defaults={message.poll.defaults} onSubmit={(f) => onSubmitFactors?.(f)} />
       ) : (
         <>
           {answerReady && (
@@ -78,7 +95,20 @@ export default function AssistantTurn({ message }: { message: AssistantMessage }
               <RichText text={message.answer} />
             </div>
           )}
-          {message.risk && <RiskCard risk={message.risk} sources={message.sources} />}
+          {message.risk && <RiskCard risk={message.risk} />}
+          {scoresReady && message.scores && <ScoresCard scores={message.scores} />}
+          {message.sources.length > 0 && (
+            <EvidenceGraph sources={message.sources} citationIds={message.risk?.citationIds ?? []} caseId={caseId} />
+          )}
+          {message.status === "done" && (message.risk || message.scores) && (
+            <ChartNote
+              caseId={caseId}
+              morphology={message.morphology}
+              scores={message.scores}
+              risk={message.risk}
+              sources={message.sources}
+            />
+          )}
         </>
       )}
     </div>

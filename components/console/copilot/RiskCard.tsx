@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import type { Citation, RiskAssessment, RiskLevel } from "@/lib/agent/types";
+import type { RiskAssessment, RiskLevel } from "@/lib/agent/types";
 
 const LEVEL: Record<RiskLevel, { label: string; color: string; fill: number }> = {
   low: { label: "LOW", color: "#2b6cff", fill: 0.26 },
@@ -9,6 +8,35 @@ const LEVEL: Record<RiskLevel, { label: string; color: string; fill: number }> =
   high: { label: "HIGH", color: "#ff3300", fill: 0.9 },
   indeterminate: { label: "INDETERMINATE", color: "#7d8fa8", fill: 0.5 },
 };
+
+// Incidental-finding triage — a red/amber/green prioritisation flag derived from the
+// verdict's risk level (feature #7). Reuses `level`; adds no model burden.
+const TRIAGE: Record<RiskLevel, { label: string; sub: string; color: string }> = {
+  high: { label: "RED", sub: "prioritise specialist review", color: "#ff3300" },
+  moderate: { label: "AMBER", sub: "specialist review recommended", color: "#f5b13d" },
+  low: { label: "GREEN", sub: "routine surveillance pathway", color: "#2ecc71" },
+  indeterminate: { label: "—", sub: "triage n/a for this question", color: "#7d8fa8" },
+};
+
+function TriageBadge({ level }: { level: RiskLevel }) {
+  const t = TRIAGE[level] ?? TRIAGE.indeterminate;
+  return (
+    <div
+      className="mb-2.5 flex items-center gap-2 rounded-md px-2 py-1.5"
+      style={{ background: `${t.color}14`, border: `1px solid ${t.color}33` }}
+      title="Incidental-finding triage — how urgently this warrants specialist review."
+    >
+      <span
+        className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+        style={{ background: t.color, boxShadow: `0 0 8px ${t.color}` }}
+      />
+      <span className="num text-[10px] font-bold uppercase tracking-widest" style={{ color: t.color }}>
+        triage {t.label}
+      </span>
+      <span className="text-[10px] text-text-lo/70">· {t.sub}</span>
+    </div>
+  );
+}
 
 function Gauge({ level }: { level: RiskLevel }) {
   const l = LEVEL[level] ?? LEVEL.indeterminate;
@@ -30,48 +58,12 @@ function Gauge({ level }: { level: RiskLevel }) {
   );
 }
 
-function EvidenceChips({ ids, sources }: { ids: string[]; sources: Citation[] }) {
-  const byId = new Map(sources.map((s) => [s.id, s]));
-  const cited = ids.map((id) => byId.get(id)).filter(Boolean) as Citation[];
-  const list = cited.length ? cited : sources;
-  const [open, setOpen] = useState(false);
-  if (!list.length) return null;
-
-  return (
-    <div>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="num flex items-center gap-1 text-[10px] uppercase tracking-widest text-text-lo hover:text-text-hi"
-      >
-        {list.length} citation{list.length === 1 ? "" : "s"} {open ? "−" : "+"}
-      </button>
-      {open && (
-        <ul className="mt-1.5 space-y-1">
-          {list.map((s) => (
-            <li key={s.id} className="rounded border border-white/6 bg-white/[0.02] px-2 py-1">
-              <div className="flex items-center gap-1.5">
-                <span className="num text-[10px] text-accent">{s.id}</span>
-                {s.contested && (
-                  <span className="num rounded-sm bg-wss-high/15 px-1 text-[9px] text-wss-high">contested</span>
-                )}
-                {s.stance && s.stance !== "neutral" && (
-                  <span className="num text-[9px] text-text-lo">{s.stance}</span>
-                )}
-              </div>
-              <div className="mt-0.5 text-[10.5px] leading-snug text-text-lo">{s.title}</div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-/** The structured verdict — a card, not prose. */
-export default function RiskCard({ risk, sources }: { risk: RiskAssessment; sources: Citation[] }) {
+/** The structured verdict — a card, not prose. Evidence sources render separately in EvidenceGraph. */
+export default function RiskCard({ risk }: { risk: RiskAssessment }) {
   const l = LEVEL[risk.level] ?? LEVEL.indeterminate;
   return (
     <div className="glass rounded-lg border-l-2 p-3.5" style={{ borderLeftColor: l.color }}>
+      <TriageBadge level={risk.level} />
       <Gauge level={risk.level} />
 
       <p className="mt-2.5 text-[13px] leading-snug text-text-hi">{risk.headline}</p>
@@ -112,12 +104,6 @@ export default function RiskCard({ risk, sources }: { risk: RiskAssessment; sour
               </li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {sources.length > 0 && (
-        <div className="mt-3 border-t border-white/5 pt-2.5">
-          <EvidenceChips ids={risk.citationIds ?? []} sources={sources} />
         </div>
       )}
     </div>

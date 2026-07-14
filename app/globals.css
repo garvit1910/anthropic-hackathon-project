@@ -23,6 +23,11 @@
   --wss-low: #2b6cff;
   --wss-high: #ff4d2e;
 
+  /* Caution amber — the single honesty/warning accent, muted to fit the
+     clinical palette (replaces the old garish #f5a623). */
+  --warn: #d99a4e;
+  --warn-soft: rgba(217, 154, 78, 0.12);
+
   --text-hi: #e6edf3;
   --text-lo: #8b98a9;
 
@@ -88,6 +93,33 @@ body {
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--text-lo);
+  }
+  /* Inline reference link — one consistent treatment site-wide. */
+  .link {
+    color: var(--text-hi);
+    text-decoration: underline;
+    text-decoration-color: rgba(148, 163, 184, 0.35);
+    text-underline-offset: 2px;
+    transition: text-decoration-color 0.18s ease, color 0.18s ease;
+  }
+  .link:hover {
+    color: #fff;
+    text-decoration-color: var(--accent);
+  }
+  /* Small mono capability/status chip. */
+  .tag {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    border: 1px solid var(--hairline);
+    color: var(--text-lo);
+    white-space: nowrap;
   }
   /* WSS heatmap ramp — reused by the legend and the console. */
   .wss-ramp {

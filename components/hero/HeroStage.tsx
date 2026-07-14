@@ -28,14 +28,15 @@ export default function HeroStage() {
     const update = () => setIsMobile(mq.matches);
     update();
     mq.addEventListener("change", update);
-    router.prefetch(`/console?case=${HERO_CASE_ID}`);
+    router.prefetch(`/upload?case=${HERO_CASE_ID}`);
     return () => mq.removeEventListener("change", update);
   }, [router]);
 
-  const goToConsole = useCallback(() => {
+  // Enter routes into the imaging-intake step; the intake page continues to /console.
+  const goToUpload = useCallback(() => {
     if (routedRef.current) return;
     routedRef.current = true;
-    router.push(`/console?case=${HERO_CASE_ID}`);
+    router.push(`/upload?case=${HERO_CASE_ID}`);
   }, [router]);
 
   const handleEnter = useCallback(() => {
@@ -43,17 +44,17 @@ export default function HeroStage() {
     setTransitioning(true);
     if (isMobile) {
       // No WebGL transition on the poster — brief fade then route.
-      setTimeout(goToConsole, 650);
+      setTimeout(goToUpload, 650);
     }
     // Desktop: BrainHero plays the transition and calls onTransitionEnd.
-  }, [isMobile, transitioning, goToConsole]);
+  }, [isMobile, transitioning, goToUpload]);
 
   return (
     <section className="relative h-[100svh] w-full overflow-hidden bg-black">
       {mounted && (isMobile ? <BrainPoster /> : (
         <BrainHero
           startTransition={transitioning}
-          onTransitionEnd={goToConsole}
+          onTransitionEnd={goToUpload}
           // Decorative cross-fade target — use a light mesh so the transition
           // stays snappy (the console itself loads the full HERO vasculature).
           vesselUrl={getCase("ANEUX_042").assets.vesselTree}

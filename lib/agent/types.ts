@@ -45,6 +45,42 @@ export interface RiskAssessment {
   contested: boolean;
 }
 
+/** One line of a PHASES/ELAPSS point ledger. */
+export interface ScoreComponent {
+  key: string;
+  name: string;
+  value: string;
+  points: number;
+  assumed?: boolean; // input was defaulted (we don't have it) — flag it in the UI
+}
+
+/** Computed validated clinical scores (compute_risk_scores). Numbers are tool-authoritative. */
+export interface RiskScores {
+  caseId: string;
+  inputsUsed: { maxDiameterMm: number; location: string; ageBand: string };
+  phases: {
+    total: number;
+    fiveYearRuptureRiskPct: number;
+    riskLabel: string;
+    components: ScoreComponent[];
+    assumptions: { field: string; assumedValue: string; ifPresent: string }[];
+    citationId: string;
+    instrument: string;
+  };
+  elapss: {
+    total: number;
+    maxPoints: number;
+    growthRiskBand: "low" | "moderate" | "high";
+    components: ScoreComponent[];
+    note: string;
+    citationId: string;
+    instrument: string;
+  };
+  datasetReference: { phase: number | null; elapss: number | null; note: string } | null;
+  citationIds: string[];
+  _note: string;
+}
+
 /** One tool invocation, surfaced as a collapsible trace card. */
 export interface ToolCallTrace {
   id: string;

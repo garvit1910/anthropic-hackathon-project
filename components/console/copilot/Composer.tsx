@@ -14,17 +14,20 @@ export default function Composer({
   onStop,
   isStreaming,
   showChips,
+  blocked = false,
 }: {
   onSubmit: (q: string) => void;
   onStop: () => void;
   isStreaming: boolean;
   showChips: boolean;
+  blocked?: boolean; // a factor poll is open — hold input until the clinician answers
 }) {
   const [value, setValue] = useState("");
+  const disabled = isStreaming || blocked;
 
   const send = (q: string) => {
     const t = q.trim();
-    if (!t || isStreaming) return;
+    if (!t || disabled) return;
     onSubmit(t);
     setValue("");
   };
@@ -37,7 +40,7 @@ export default function Composer({
             <button
               key={q}
               onClick={() => send(q)}
-              disabled={isStreaming}
+              disabled={disabled}
               className="glass-hover num rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-text-lo hover:text-text-hi disabled:cursor-not-allowed disabled:opacity-40"
             >
               {q}
@@ -56,8 +59,8 @@ export default function Composer({
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder={isStreaming ? "reasoning…" : "Interrogate this aneurysm…"}
-          disabled={isStreaming}
+          placeholder={blocked ? "answer the factors above…" : isStreaming ? "reasoning…" : "Interrogate this aneurysm…"}
+          disabled={disabled}
           aria-label="Ask the copilot"
           className="num flex-1 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-text-hi placeholder:text-text-lo/60 focus:border-accent/50 focus:outline-none disabled:opacity-60"
         />
@@ -73,7 +76,7 @@ export default function Composer({
         ) : (
           <button
             type="submit"
-            disabled={!value.trim()}
+            disabled={!value.trim() || blocked}
             className="num rounded-full border border-accent/40 bg-accent/10 px-3.5 py-2.5 text-[11px] text-accent disabled:opacity-40"
             aria-label="Send"
           >

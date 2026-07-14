@@ -10,6 +10,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { queryLiterature, type QueryOpts } from "./retrieval";
+import {
+  scorePhasesElapss,
+  elapssAgePoints,
+  DEFAULT_FACTORS,
+  type ClinicalFactors,
+  type ScoreDataInputs,
+} from "./scoring";
 
 const ARTIFACTS = path.join(process.cwd(), "artifacts");
 const CATHETER_MIN_RADIUS_MM = 0.35; // guiding-catheter fit — a HARD constraint
@@ -91,6 +98,65 @@ export function getMorphology(caseId: string) {
     _note:
       "The rupture outcome label and patient identifiers are intentionally withheld from you.",
   };
+}
+
+// ---------------------------------------------------------------------------
+// compute_risk_scores — the validated clinical instruments, COMPUTED live
+// ---------------------------------------------------------------------------
+//
+// PHASES (Greving 2014, Lancet Neurol) and ELAPSS (Backes 2017, Neurology) are
+// the two standard scores a neurovascular board actually uses. Until now the
+// copilot only CITED them from the corpus; this computes them from THIS patient.
+//
+// Leak boundary: this reads clinical.patient_age and geometry.location and
+// NOTHING else from clinical — never rupture_status. It exposes only the age
+// BAND used (not the raw age), so age is treated as a legitimate score input,
+// not an identifier or the outcome. See getMorphology's leak note.
+//
+// PHASES weights + 5-yr risk table are exact (confirmed vs Greving 2014 / MDCalc).
+// ELAPSS component weights are from Backes 2017 Table 1 (growth band approximate).
+// The four factors we can't measure from a scan (population, hypertension, earlier
+// SAH, shape) come from the clinician via the poll and arrive as `factors`; until
+// answered they DEFAULT and are FLAGGED. The scoring math lives in ./scoring.ts so
+// the client (scripted hero replay) can compute identical results from those factors.
+
+export function computeRiskScores(caseId: string, factors?: ClinicalFactors) {
+  const dir = caseDir(caseId);
+  const morph = readJson(path.join(dir, "morphology.json"));
+  const g = morph.geometry ?? {};
+  const clinical = morph.clinical ?? {};
+
+  const maxD: number = g.max_diameter_mm;
+  const location: string = g.location ?? "other";
+  // ★★ ONLY age + location from clinical. NEVER read/return clinical.rupture_status.
+  const age: number = typeof clinical.patient_age === "number" ? clinical.patient_age : NaN;
+  const haveAge = Number.isFinite(age);
+  const eAge = elapssAgePoints(haveAge ? age : 0);
+
+  let datasetReference: null | { phase: number | null; elapss: number | null; note: string } = null;
+  if (clinical.phase_score != null || clinical.elapss_score != null) {
+    datasetReference = {
+      phase: clinical.phase_score ?? null,
+      elapss: clinical.elapss_score ?? null,
+      note:
+        "Cross-reference only: the source dataset's PHASE/ELAPSS columns follow a different scoring " +
+        "convention than the published Greving-2014 / Backes-2017 tables computed here, so the totals are " +
+        "not expected to match exactly. Shown for provenance, not as validation.",
+    };
+  }
+
+  const inputs: ScoreDataInputs = {
+    caseId: morph.case_id ?? caseId,
+    maxDiameterMm: maxD,
+    location,
+    phasesAgePts: haveAge && age > 70 ? 1 : 0,
+    ageBandLabel: !haveAge ? "unknown" : age > 70 ? ">70" : "<=70",
+    ageAssumed: !haveAge,
+    elapssAgePts: haveAge ? eAge.points : 0,
+    elapssAgeLabel: haveAge ? eAge.band : "unknown",
+    datasetReference,
+  };
+  return scorePhasesElapss(inputs, factors ?? DEFAULT_FACTORS, !!factors);
 }
 
 // ---------------------------------------------------------------------------
@@ -300,7 +366,7 @@ export function highlightGeometry(input: {
     annotation: input.annotation ?? null,
     unknownElementIds: unknown,
     vocabulary: ELEMENT_VOCAB,
-    _note: "Structured highlight command emitted for the viewer bus (not rendered in this build).",
+    _note: "Highlight command emitted to the viewer bus — the named elements flash in the 3D scene.",
   };
 }
 
@@ -358,6 +424,20 @@ export const TOOL_DEFS = [
       "with vessel caliber below the catheter minimum treated as a HARD impassability constraint. " +
       "Returns per-segment length, tortuosity and difficulty, a total length, and an overall difficulty score. " +
       "Use for endovascular access / navigation questions. Report honestly whether the caliber constraint actually binds.",
+    input_schema: {
+      type: "object",
+      properties: { caseId: { type: "string", description: "Case id, e.g. 'C0001'." } },
+      required: ["caseId"],
+    },
+  },
+  {
+    name: "compute_risk_scores",
+    description:
+      "Compute the VALIDATED clinical rupture/growth scores for THIS patient, live: PHASES (5-year rupture risk) " +
+      "and ELAPSS (aneurysm growth). Call AFTER get_morphology, for any rupture-risk, triage, or treat-vs-observe " +
+      "question. Returns a per-component point ledger, the total, the mapped 5-year rupture risk %, and — critically " +
+      "— the inputs it had to ASSUME (population, hypertension, earlier SAH, shape) with each assumption's sensitivity. " +
+      "Surface the breakdown and the assumptions; a low PHASES is not reassurance on its own (rupture_risk_scores-06).",
     input_schema: {
       type: "object",
       properties: { caseId: { type: "string", description: "Case id, e.g. 'C0001'." } },
@@ -431,6 +511,13 @@ export async function runTool(
         summary: r.feasible
           ? `${(r as any).segments.length} segments, ${(r as any).totalLengthMm}mm, difficulty ${(r as any).difficultyScore}`
           : "no feasible path",
+      };
+    }
+    case "compute_risk_scores": {
+      const r = computeRiskScores(input.caseId ?? "C0001", input.factors as ClinicalFactors | undefined);
+      return {
+        result: r,
+        summary: `PHASES ${r.phases.total} -> ${r.phases.fiveYearRuptureRiskPct}% 5-yr, ELAPSS ${r.elapss.total}/40 (${r.elapss.growthRiskBand})`,
       };
     }
     case "perturb_morphology": {

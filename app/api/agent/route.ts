@@ -8,6 +8,7 @@
 
 import { runAgent } from "@/lib/agent/loop";
 import type { AgentServerEvent } from "@/lib/agent/types";
+import type { ClinicalFactors } from "@/lib/agent/scoring";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const message: string = body?.message ?? "";
   const caseId: string = body?.caseId ?? "C0001";
+  const factors: ClinicalFactors | undefined = body?.factors;
 
   if (!message.trim()) {
     return new Response(JSON.stringify({ error: "Missing 'message'." }), {
@@ -60,6 +62,7 @@ export async function POST(req: Request) {
       try {
         const result = await runAgent(message, {
           caseId,
+          factors,
           signal: ac.signal,
           onEvent: (e) => send(e),
         });

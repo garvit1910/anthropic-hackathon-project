@@ -12,19 +12,20 @@ import Composer from "./Composer";
  * the embedded 3D viewer) and lands a structured risk verdict.
  */
 export default function CopilotPanel({ caseId }: { caseId: string }) {
-  const { messages, isStreaming, submit, stop } = useAgentStream(caseId);
+  const { messages, isStreaming, pendingPoll, submit, submitFactors, stop } = useAgentStream(caseId);
   const queuedQuestion = useConsoleStore((s) => s.queuedQuestion);
   const queueQuestion = useConsoleStore((s) => s.queueQuestion);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Viewer controls (e.g. What-If "re-assess") queue a question here.
+  // Viewer controls (e.g. What-If "re-assess") queue a question here. Hold off while a
+  // factor poll is open so the queued run doesn't jump the clinician's answer.
   useEffect(() => {
-    if (queuedQuestion && !isStreaming) {
+    if (queuedQuestion && !isStreaming && !pendingPoll) {
       submit(queuedQuestion);
       queueQuestion(null);
     }
-  }, [queuedQuestion, isStreaming, submit, queueQuestion]);
+  }, [queuedQuestion, isStreaming, pendingPoll, submit, queueQuestion]);
 
   // Keep the newest reasoning in view as it streams.
   useEffect(() => {
@@ -69,13 +70,19 @@ export default function CopilotPanel({ caseId }: { caseId: string }) {
                 <div className="text-[13.5px] leading-snug text-text-hi">{m.text}</div>
               </div>
             ) : (
-              <AssistantTurn key={m.id} message={m} />
+              <AssistantTurn key={m.id} message={m} caseId={caseId} onSubmitFactors={submitFactors} />
             ),
           )
         )}
       </div>
 
-      <Composer onSubmit={submit} onStop={stop} isStreaming={isStreaming} showChips={empty || !isStreaming} />
+      <Composer
+        onSubmit={submit}
+        onStop={stop}
+        isStreaming={isStreaming}
+        showChips={(empty || !isStreaming) && !pendingPoll}
+        blocked={pendingPoll}
+      />
     </aside>
   );
 }

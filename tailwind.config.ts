@@ -22,6 +22,7 @@ const config: Config = {
         path: "var(--path)",
         "wss-low": "var(--wss-low)",
         "wss-high": "var(--wss-high)",
+        warn: "var(--warn)",
         "text-hi": "var(--text-hi)",
         "text-lo": "var(--text-lo)",
       },
